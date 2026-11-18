@@ -216,32 +216,32 @@ const FONT: Record<string, Glyph> = {
   X: [60, ["M10,70 L46,0", "M46,70 L10,0"]],
   Y: [60, ["M8,70 L28,36 L48,70", "M28,36 L28,0"]],
   Z: [60, ["M8,70 L48,70 L8,0 L48,0"]],
-  a: [60, ["M14,44 L24,48 L36,46 L44,38 L46,26 L40,14 L28,8 L18,10 L12,18 L12,30 L18,40 L28,44", "M46,48 L46,8"]],
-  b: [60, ["M12,72 L12,0", "M12,44 L24,48 L36,44 L44,36 L44,22 L36,12 L24,8 L12,12"]],
-  c: [60, ["M44,40 L38,46 L26,48 L14,42 L10,30 L10,18 L16,10 L28,6 L40,8 L44,14"]],
-  d: [60, ["M12,44 L22,48 L34,44 L42,36 L44,24 L38,12 L26,8 L16,10 L12,18 L12,30 L18,40 L28,44", "M44,72 L44,0"]],
-  e: [60, ["M10,24 L44,24 L44,34 L38,44 L26,48 L16,44 L10,34 L10,22 L16,12 L28,8 L38,10 L44,18"]],
-  f: [60, ["M22,72 L34,72 L38,62 L38,0", "M10,48 L44,48"]],
-  g: [60, ["M12,44 L22,48 L34,44 L42,36 L44,24 L38,12 L26,8 L16,10 L12,18 L12,30 L18,40 L28,44", "M44,48 L44,0 L42,-14 L32,-22 L20,-20 L14,-12"]],
-  h: [60, ["M12,72 L12,0", "M12,34 L22,46 L32,48 L40,42 L44,32 L44,0"]],
+  a: [54, ["M14,44 L24,48 L36,46 L44,38 L46,26 L40,14 L28,8 L18,10 L12,18 L12,30 L18,40 L28,44", "M46,48 L46,8"]],
+  b: [54, ["M12,72 L12,0", "M12,44 L24,48 L36,44 L44,36 L44,22 L36,12 L24,8 L12,12"]],
+  c: [54, ["M44,40 L38,46 L26,48 L14,42 L10,30 L10,18 L16,10 L28,6 L40,8 L44,14"]],
+  d: [54, ["M12,44 L22,48 L34,44 L42,36 L44,24 L38,12 L26,8 L16,10 L12,18 L12,30 L18,40 L28,44", "M44,72 L44,0"]],
+  e: [54, ["M10,24 L44,24 L44,34 L38,44 L26,48 L16,44 L10,34 L10,22 L16,12 L28,8 L38,10 L44,18"]],
+  f: [48, ["M22,72 L34,72 L38,62 L38,0", "M10,48 L44,48"]],
+  g: [54, ["M12,44 L22,48 L34,44 L42,36 L44,24 L38,12 L26,8 L16,10 L12,18 L12,30 L18,40 L28,44", "M44,48 L44,0 L42,-14 L32,-22 L20,-20 L14,-12"]],
+  h: [54, ["M12,72 L12,0", "M12,34 L22,46 L32,48 L40,42 L44,32 L44,0"]],
   i: [28, ["M14,48 L14,2", "M14,70 L14,64"]],
   j: [30, ["M20,48 L20,-12 L16,-20 L10,-22", "M20,70 L20,64"]],
-  k: [60, ["M12,72 L12,0", "M42,48 L16,22 L14,20", "M20,26 L42,0"]],
+  k: [54, ["M12,72 L12,0", "M42,48 L16,22 L14,20", "M20,26 L42,0"]],
   l: [28, ["M14,72 L14,0"]],
-  m: [60, ["M8,0 L8,48", "M8,34 L16,46 L24,48 L30,42 L32,32 L32,0", "M32,34 L40,46 L48,48 L52,42 L54,32 L54,0"]],
-  n: [60, ["M10,0 L10,48", "M10,34 L20,46 L32,48 L40,42 L44,32 L44,0"]],
-  o: [60, ["M28,48 L18,44 L12,34 L10,22 L14,12 L24,6 L34,6 L44,12 L48,22 L46,34 L40,44 L28,48"]],
-  p: [60, ["M12,48 L12,-22", "M12,12 L22,8 L34,10 L42,18 L44,28 L38,40 L26,46 L16,44 L12,36"]],
-  q: [60, ["M44,48 L44,-22", "M44,12 L34,8 L22,10 L14,18 L12,28 L18,40 L30,46 L40,44 L44,36"]],
-  r: [60, ["M12,0 L12,48", "M12,30 L20,44 L30,48 L38,46"]],
-  s: [60, ["M42,40 L34,46 L24,48 L14,44 L10,36 L14,28 L24,24 L34,22 L42,16 L40,8 L32,4 L22,4 L14,8"]],
+  m: [58, ["M8,0 L8,48", "M8,34 L16,46 L24,48 L30,42 L32,32 L32,0", "M32,34 L40,46 L48,48 L52,42 L54,32 L54,0"]],
+  n: [54, ["M10,0 L10,48", "M10,34 L20,46 L32,48 L40,42 L44,32 L44,0"]],
+  o: [54, ["M28,48 L18,44 L12,34 L10,22 L14,12 L24,6 L34,6 L44,12 L48,22 L46,34 L40,44 L28,48"]],
+  p: [54, ["M12,48 L12,-22", "M12,12 L22,8 L34,10 L42,18 L44,28 L38,40 L26,46 L16,44 L12,36"]],
+  q: [54, ["M44,48 L44,-22", "M44,12 L34,8 L22,10 L14,18 L12,28 L18,40 L30,46 L40,44 L44,36"]],
+  r: [44, ["M12,0 L12,48", "M12,30 L20,44 L30,48 L38,46"]],
+  s: [54, ["M42,40 L34,46 L24,48 L14,44 L10,36 L14,28 L24,24 L34,22 L42,16 L40,8 L32,4 L22,4 L14,8"]],
   t: [36, ["M18,72 L18,2", "M6,46 L32,46"]],
-  u: [60, ["M10,48 L10,14 L16,6 L26,4 L36,6 L42,14 L42,48"]],
-  v: [60, ["M8,48 L24,0 L40,48"]],
-  w: [60, ["M6,48 L14,2 L24,34 L34,2 L42,48"]],
-  x: [60, ["M10,48 L42,0", "M42,48 L10,0"]],
-  y: [60, ["M8,48 L24,6 L40,48", "M24,6 L18,-18 L14,-22"]],
-  z: [60, ["M8,48 L46,48 L10,0 L48,0"]],
+  u: [54, ["M10,48 L10,14 L16,6 L26,4 L36,6 L42,14 L42,48"]],
+  v: [54, ["M8,48 L24,0 L40,48"]],
+  w: [50, ["M6,48 L14,2 L24,34 L34,2 L42,48"]],
+  x: [54, ["M10,48 L42,0", "M42,48 L10,0"]],
+  y: [54, ["M8,48 L24,6 L40,48", "M24,6 L18,-18 L14,-22"]],
+  z: [54, ["M8,48 L46,48 L10,0 L48,0"]],
   " ": [28, []],
   ".": [28, ["M12,2 L16,2"]],
   ",": [28, ["M12,2 L16,2", "M15,0 L10,-12"]],
@@ -283,7 +283,7 @@ function drawGlyph(ch: string, bx: number, by: number, size: number, color: RGB,
   const g = PARSED[ch];
   if (!g) return size * 0.4;
   const s = size / 70;
-  const w = Math.max(1.2, weight * s);
+  const w = Math.max(1.8, weight * s);
   for (const stroke of g.strokes) {
     for (let i = 0; i + 1 < stroke.length; i++) {
       const [x1, y1] = stroke[i];
@@ -404,19 +404,19 @@ const LEADS: Lead[] = [
 ];
 type GridItem = { num: number; cat: string; color: RGB; head: string; deck: string };
 const GRID: GridItem[] = [
-  { num: 4, cat: "QUAD", color: BLUE, head: "Leaders meet in Manila", deck: "Trump, Modi, Takaichi, Albanese agree a forum, a patrol drill, minerals deals." },
+  { num: 4, cat: "QUAD", color: BLUE, head: "Leaders meet in Manila", deck: "Trump, Modi, Takaichi, Albanese back joint patrols and minerals deals." },
   { num: 5, cat: "U.S. SENATE", color: BLUE, head: "Peltola flips Alaska", deck: "Peltola beats Sullivan 144,302 to 131,844; Democrats take a 56-44 Senate." },
   { num: 6, cat: "GAZA", color: RED, head: "Ceasefire near collapse", deck: "Board of Peace: both sides failing the deal; 1,600+ killed since 2025." },
-  { num: 7, cat: "EBOLA", color: PURPLE, head: "Congo toll: 11,504 cases", deck: "11,504 cases, 5,630 deaths to 16 Nov; Africa CDC: 'still out of control'." },
+  { num: 7, cat: "EBOLA", color: PURPLE, head: "Congo toll: 11,504 cases", deck: "5,630 deaths to 16 Nov; Africa CDC: 'still out of control'." },
   { num: 8, cat: "HEALTH", color: TEAL, head: "U.S. loses measles-free status", deck: "PAHO ends 26 years of elimination; 5,412 cases, the most since 1991." },
   { num: 9, cat: "RUSSIA", color: INK, head: "An-12 crash kills all 19 aboard", deck: "A military An-12 falls near Kemerovo; a criminal case opens on 18 Nov." },
   { num: 10, cat: "WEATHER", color: BLUE, head: "Cyclone Xavier hits Cook Islands", deck: "Category 5 Xavier hits the Cook Islands at 220 km/h; shelter urged." },
-  { num: 11, cat: "FLORIDA", color: ORANGE, head: "Floods shut schools", deck: "Up to 15 inches of rain in Broward; rescues, I-95 shut, emergency declared." },
+  { num: 11, cat: "FLORIDA", color: ORANGE, head: "Floods shut schools", deck: "Up to 15 inches of rain in Broward; I-95 shut, emergency declared." },
   { num: 12, cat: "JUSTICE", color: INK, head: "27.5 years for Trump plot", deck: "Merchant, 48, gets 330 months for an Iran-backed plot to kill Donald Trump." },
   { num: 13, cat: "LATVIA", color: GREEN, head: "Kulbergs wins confidence vote", deck: "Saeima backs Kulbergs' government 57-34; 2.9 billion euros saved by 2030." },
-  { num: 14, cat: "FRANCE", color: PURPLE, head: "140,000 march in pay strike", deck: "Unions call a public-sector strike over pay; 15,000 detained in recent weeks." },
+  { num: 14, cat: "FRANCE", color: PURPLE, head: "140,000 march in pay strike", deck: "Unions strike over pay; justice minister: 15,000 detained." },
   { num: 15, cat: "QUAKES", color: ORANGE, head: "M6.0 shakes Papua New Guinea", deck: "M6.0 quake at 10 km depth; a 5.3 in Romania is felt in Bucharest, 2 hurt." },
-  { num: 16, cat: "SPORT", color: GREEN, head: "Dhoni retires from the IPL", deck: "Dhoni, 45, ends his playing career; CSK mentor from 2027. 278 matches, 5 titles." },
+  { num: 16, cat: "SPORT", color: GREEN, head: "Dhoni retires from the IPL", deck: "Dhoni, 45, ends his playing career; CSK mentor from 2027. 278 matches." },
 ];
 const ALSO: string[] = [
   "Akvan cyclone nears India, landfall 20 Nov",
@@ -599,7 +599,7 @@ function drawPoster(): void {
       drawText(it.cat, x + 28, iy + 18, 15, it.color, { weight: 7 });
       const hs = fitSize(it.head, 312 - 28 - catW, 15);
       drawText(it.head, x + 28 + catW, iy + 18, hs, INK, { weight: 7 });
-      drawParaFit(it.deck, x + 28, iy + 36, 284, 11.5, 14, INK, { weight: 5 }, 2, 10);
+      drawParaFit(it.deck, x + 28, iy + 36, 284, 12.5, 14, INK, { weight: 5 }, 2, 11);
     }
   }
   // map + also
