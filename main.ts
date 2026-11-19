@@ -250,9 +250,10 @@ const quad = (p0: [number, number], p1: [number, number], p2: [number, number], 
 // Bracketed-serif stem (serif face only): one closed outline. The serif is
 // a slab whose top edge curves (brackets) into the stem, so the foot reads
 // as a real printed serif instead of a flat rectangle. s = serif extension,
-// h = serif height, b = bracket rise.
+// h = serif height, b = bracket rise. (r9) serifs are larger and more
+// bracketed, like the top-1 title serif.
 const stemS = (x: number, y0: number, y1: number, w: number, top = true, bot = true): Part => {
-  const s = 3, h = 4, b = 5;
+  const s = 4, h = 5, b = 6;
   const pts: Ctr = [];
   if (bot) {
     pts.push([x - s, y0], [x - s, y0 + h]);
@@ -399,10 +400,30 @@ const arcBandT = (cx: number, cy: number, rx: number, ry: number, a0: number, a1
   }
   return p;
 };
+// Horizontal bar with pointed (tapered) ends — the 't'/'f' crossbars, the
+// 'e' bar, and the E/F/I/L/T/Z arms, so their terminals read as drawn,
+// not cut. (r9)
+const barT = (x0: number, x1: number, y: number, th: number, tp = 2): Ctr => [
+  [x0 + tp, y - th / 2],
+  [x1 - tp, y - th / 2],
+  [x1, y],
+  [x1 - tp, y + th / 2],
+  [x0 + tp, y + th / 2],
+  [x0, y],
+];
+// (r9) REDESIGN TOTAL — kedua wajah digambar ulang dari nol agar menyerupai
+// font top-1 (@yoshifumi-nagata): serif koran old-style yang padat/hitam
+// (SERIF) dan grotesque bersih yang terbuka (FONT). Semua advance SAMA
+// seperti r8, jadi layout, wrap, dan fitSize tidak berubah sedikit pun.
+// Sans: stroke MERATA (bowl/arcBand, bukan bowlC/arcC berkontras) —
+// grotesque asli; aperture lebih lebar ('c', 'e', 'a' terbuka); 's'/'S'
+// spine terbuka (tidak terjepit); 't' crossbar berujung runcing (barT);
+// 'f' hook melengkung yang benar; 'r' terminal meruncing; digit grotesque
+// bersih yang tetap terbaca mutlak benar.
 const FONT: Record<string, OGlyph> = {
-  "0": [60, [bowl(28, 35, 20, 32, 7)]],
-  "1": [60, [...stem(26, 0, 70, 11), [diag(18, 56, 30, 70, 7)]]],
-  "2": [60, [[arcBand(28, 54, 16, 13, -10, 190, 7)], [diag(44, 52, 12, 6, 7)], [rect(8, 0, 48, 7)]]],
+  "0": [60, [bowl(28, 35, 19, 32, 7)]],
+  "1": [60, [...stem(26, 0, 70, 11), [diag(18, 56, 30, 70, 7)], [rect(16, 0, 38, 6)]]],
+  "2": [60, [[arcBand(28, 54, 17, 14, -5, 185, 7)], [diag(44, 52, 12, 6, 7)], [rect(8, 0, 48, 7)]]],
   "3": [60, [[arcBand(29, 54, 14, 13, -50, 180, 7)], [arcBand(29, 19, 15, 14, 180, 410, 7)], [rect(30, 26, 44, 48)]]],
   "4": [60, [[diag(40, 70, 12, 24, 7)], [rect(8, 19, 44, 26)], ...stem(32, 0, 70, 9, false, true)]],
   "5": [60, [[rect(10, 63, 44, 70)], ...stem(10, 36, 68, 9, false, false), [rect(10, 32, 32, 39)], [arcBand(28, 20, 15, 16, 250, 450, 7)]]],
@@ -410,58 +431,58 @@ const FONT: Record<string, OGlyph> = {
   "7": [60, [[rect(8, 63, 48, 70)], [diag(46, 70, 24, 0, 7)]]],
   "8": [60, [bowl(28, 52, 14, 14, 7), bowl(28, 20, 15, 16, 7)]],
   "9": [60, [bowl(28, 48, 15, 18, 7), ...stem(38, 0, 50, 9, false, false)]],
-  A: [60, [[diagS(6, 0, 28, 71.5, 9, 4.5)], [diagS(28, 71.5, 50, 0, 4.5, 9)], [rect(14, 23, 42, 30)]]],
-  B: [60, [...stem(8, 0, 70, 11), bowlC(29, 54, 15, 17.5, 8, 6), bowlC(29, 18, 15, 19.5, 8, 6)]],
-  C: [60, [[arcC(28, 35, 21, 36.5, 45, 315, 8, 6)]]],
-  D: [60, [...stem(8, 0, 70, 11), [ell(30, 35, 21, 36.5), ell(30, 35, 13, 30.5)]]],
-  E: [60, [...stem(8, 0, 70, 11), [rect(8, 63, 48, 70)], [rect(8, 31, 38, 38)], [rect(8, 0, 48, 7)]]],
-  F: [60, [...stem(8, 0, 70, 11), [rect(8, 63, 48, 70)], [rect(8, 31, 38, 38)]]],
-  G: [60, [[arcC(28, 35, 21, 36.5, 45, 315, 8, 6)], [rect(28, 27, 48, 34)], ...stem(43, 4, 30, 7, false, false)]],
-  H: [60, [...stem(8, 0, 70, 11), ...stem(39, 0, 70, 11), [rect(8, 31, 49, 38)]]],
-  I: [60, [[rect(24, 0, 35, 70)], [rect(14, 63, 38, 70)], [rect(14, 0, 38, 7)]]],
-  J: [60, [...stem(34, 0, 70, 11, true, false), [arcBand(30, 12, 16, 12, 180, 295, 7)]]],
-  K: [60, [...stem(8, 0, 70, 11), [diagS(20, 24, 44, 70, 5, 8)], [diagS(20, 24, 44, 0, 5, 8)]]],
-  L: [60, [...stem(8, 0, 70, 11), [rect(8, 0, 48, 7)]]],
-  M: [60, [...stem(6, 0, 70, 11), [diagS(6, 70, 28, 28, 8, 4)], [diagS(28, 28, 50, 70, 4, 8)], ...stem(47, 0, 70, 11)]],
-  N: [60, [...stem(8, 0, 70, 11), [diag(8, 70, 48, 0, 8)], ...stem(39, 0, 70, 11)]],
-  O: [60, [bowlC(28, 35, 22, 36.5, 8, 6)]],
-  P: [60, [...stem(8, 0, 70, 11), bowlC(29, 54, 15, 17.5, 8, 6)]],
-  Q: [60, [bowlC(28, 35, 22, 36.5, 8, 6), [diag(38, 14, 52, -4, 6)]]],
-  R: [60, [...stem(8, 0, 70, 11), bowlC(29, 54, 15, 17.5, 8, 6), [diagS(28, 36, 48, 0, 5, 7.5)]]],
-  S: [60, [[arcC(28, 53, 17, 18.5, 25, 270, 8, 6)], [arcC(28, 18, 17, 19.5, 200, 450, 8, 6)]]],
-  T: [60, [[rect(6, 63, 50, 70)], ...stem(24, 0, 70, 11)]],
-  U: [60, [...stem(8, 0, 70, 11), ...stem(39, 0, 70, 11), [arcC(28, 12, 15, 13.5, 180, 360, 8, 6)]]],
+  A: [60, [[diagS(6, 0, 28, 71.5, 9, 4.5)], [diagS(28, 71.5, 50, 0, 4.5, 9)], [barT(14, 42, 26.5, 7, 2)]]],
+  B: [60, [...stem(8, 0, 70, 10), bowl(29, 54, 15, 17.5, 8), bowl(29, 18, 15, 19.5, 8)]],
+  C: [60, [[arcBand(28, 35, 21, 36.5, 40, 320, 8)]]],
+  D: [60, [...stem(8, 0, 70, 10), [ell(30, 35, 21, 36.5), ell(30, 35, 13, 30.5)]]],
+  E: [60, [...stem(8, 0, 70, 10), [barT(8, 48, 66.5, 7, 2)], [barT(8, 38, 34.5, 7, 2)], [barT(8, 48, 3.5, 7, 2)]]],
+  F: [60, [...stem(8, 0, 70, 10), [barT(8, 48, 66.5, 7, 2)], [barT(8, 38, 34.5, 7, 2)]]],
+  G: [60, [[arcBand(28, 35, 21, 36.5, 40, 320, 8)], [rect(28, 27, 48, 34)], ...stem(43, 4, 30, 7, false, false)]],
+  H: [60, [...stem(8, 0, 70, 10), ...stem(39, 0, 70, 10), [rect(8, 31, 49, 38)]]],
+  I: [60, [[rect(24, 0, 35, 70)], [barT(14, 38, 66.5, 7, 2)], [barT(14, 38, 3.5, 7, 2)]]],
+  J: [60, [...stem(34, 0, 70, 10, true, false), [arcBand(30, 12, 16, 12, 180, 295, 7)]]],
+  K: [60, [...stem(8, 0, 70, 10), [diagS(20, 24, 44, 70, 5, 8)], [diagS(20, 24, 44, 0, 5, 8)]]],
+  L: [60, [...stem(8, 0, 70, 10), [barT(8, 48, 3.5, 7, 2)]]],
+  M: [60, [...stem(6, 0, 70, 10), [diagS(6, 70, 28, 28, 8, 4)], [diagS(28, 28, 50, 70, 4, 8)], ...stem(47, 0, 70, 10)]],
+  N: [60, [...stem(8, 0, 70, 10), [diag(8, 70, 48, 0, 8)], ...stem(39, 0, 70, 10)]],
+  O: [60, [bowl(28, 35, 22, 36.5, 8)]],
+  P: [60, [...stem(8, 0, 70, 10), bowl(29, 54, 15, 17.5, 8)]],
+  Q: [60, [bowl(28, 35, 22, 36.5, 8), [diag(38, 14, 52, -4, 6)]]],
+  R: [60, [...stem(8, 0, 70, 10), bowl(29, 54, 15, 17.5, 8), [diagS(28, 36, 48, 0, 5, 7.5)]]],
+  S: [60, [[arcBand(28, 54, 16, 17, 30, 285, 8)], [arcBand(28, 17, 17, 19, 195, 450, 8)]]],
+  T: [60, [[barT(6, 50, 66.5, 7, 2)], ...stem(24, 0, 70, 10)]],
+  U: [60, [...stem(8, 0, 70, 10), ...stem(39, 0, 70, 10), [arcBand(28, 12, 15, 13.5, 180, 360, 8)]]],
   V: [60, [[diagS(8, 70, 28, -1, 9, 4)], [diagS(28, -1, 48, 70, 4, 9)]]],
   W: [60, [[diagS(4, 70, 14, -1, 7, 3)], [diagS(14, -1, 28, 70, 3, 7)], [diagS(28, 70, 42, -1, 7, 3)], [diagS(42, -1, 52, 70, 3, 7)]]],
   X: [60, [[diagX(10, 70, 46, 0, 8, 5)], [diagX(46, 70, 10, 0, 8, 5)]]],
-  Y: [60, [[diagS(8, 70, 28, 36, 9, 5)], [diagS(48, 70, 28, 36, 9, 5)], ...stem(24, 0, 38, 11)]],
-  Z: [60, [[rect(8, 63, 48, 70)], [diagX(48, 70, 8, 0, 7, 5)], [rect(8, 0, 48, 7)]]],
-  a: [54, [bowlC(26, 24, 19, 25.5, 7, 5), ...stem(37, 8, 48, 10)]],
-  b: [54, [...stem(10, 0, 72, 10), bowlC(27, 24, 19, 25.5, 7, 5)]],
-  c: [54, [[arcC(27, 24, 19, 25.5, 50, 310, 7, 5)]]],
-  d: [54, [bowlC(27, 24, 19, 25.5, 7, 5), ...stem(37, 0, 72, 10)]],
-  e: [54, [[arcC(27, 24, 19, 25.5, 25, 335, 7, 5)], [rect(10, 24, 44, 28)]]],
-  f: [48, [...stem(20, 0, 66, 10, false, true), [arcBandT(24, 58, 9, 9, 0, 180, 4, 7)], [rect(8, 43, 38, 50)]]],
-  g: [54, [bowlC(26, 34.5, 16, 15, 7, 5), bowlC(26, -9, 13, 12, 7, 5), ...stem(34, -21, 48, 10, true, false)]],
-  h: [54, [...stem(10, 0, 72, 10), [arcC(23, 34, 15, 15.5, 0, 180, 7, 5)], ...stem(36, 0, 34, 10, false, true)]],
-  i: [28, [...stem(10, 0, 48, 10, false, true), [ell(14, 64, 4.5, 4.5)]]],
-  j: [30, [...stem(11, -20, 48, 10, false, false), [arcBand(15, -10, 9, 9, 180, 270, 6)], [ell(15, 64, 4.5, 4.5)]]],
-  k: [54, [...stem(10, 0, 72, 10), [diagS(20, 24, 42, 48, 4.5, 7)], [diagS(20, 24, 42, 0, 4.5, 7)]]],
-  l: [28, [...stem(10, 0, 72, 10)]],
-  m: [58, [...stem(6, 0, 48, 10), [arcC(20, 34, 14, 15, 0, 180, 7, 5)], ...stem(26, 0, 34, 10, false, true), [arcC(40, 34, 14, 15, 0, 180, 7, 5)], ...stem(46, 0, 34, 10, false, true)]],
-  n: [54, [...stem(10, 0, 48, 10), [arcC(26, 34, 18, 15.5, 0, 180, 7, 5)], ...stem(36, 0, 34, 10, false, true)]],
-  o: [54, [bowlC(27, 24, 19, 25.5, 7, 5)]],
-  p: [54, [...stem(10, -24, 48, 10, false, false), bowlC(27, 24, 19, 25.5, 7, 5)]],
-  q: [54, [bowlC(27, 24, 19, 25.5, 7, 5), ...stem(37, -24, 48, 10, false, false)]],
-  r: [54, [...stem(10, 0, 48, 10), [arcBandT(24, 28, 13, 15, -30, 100, 4.5, 7)]]],
-  s: [54, [[arcC(27, 38, 15, 11.5, 25, 270, 7, 5)], [arcC(27, 12, 15, 13.5, 200, 450, 7, 5)]]],
-  t: [36, [...stem(14, -2, 68, 10, false, true), [rect(4, 43, 32, 50)]]],
-  u: [54, [...stem(10, 0, 48, 10), ...stem(36, 0, 48, 10), [arcC(27, 12, 14, 13.5, 180, 360, 7, 5)]]],
+  Y: [60, [[diagS(8, 70, 28, 36, 9, 5)], [diagS(48, 70, 28, 36, 9, 5)], ...stem(24, 0, 38, 10)]],
+  Z: [60, [[barT(8, 48, 66.5, 7, 2)], [diagX(48, 70, 8, 0, 7, 5)], [barT(8, 48, 3.5, 7, 2)]]],
+  a: [54, [bowl(26, 24, 20, 25.5, 8), ...stem(37, 0, 48, 9)]],
+  b: [54, [...stem(10, 0, 72, 9), bowl(27, 24, 20, 25.5, 8)]],
+  c: [54, [[arcBand(27, 24, 20, 25.5, 40, 320, 8)]]],
+  d: [54, [bowl(27, 24, 20, 25.5, 8), ...stem(37, 0, 72, 9)]],
+  e: [54, [[arcBand(27, 24, 20, 25.5, 25, 335, 8)], [barT(10, 44, 26, 4, 2)]]],
+  f: [48, [...stem(20, 0, 66, 9, false, true), [arcBandT(24, 58, 9, 9, 0, 180, 4, 8)], [barT(8, 38, 46.5, 7, 2)]]],
+  g: [54, [bowl(26, 34.5, 16, 15, 8), bowl(26, -9, 13, 12, 8), ...stem(34, -21, 48, 9, true, false)]],
+  h: [54, [...stem(10, 0, 72, 9), [arcBand(23, 34, 15, 15.5, 0, 180, 8)], ...stem(36, 0, 34, 9, false, true)]],
+  i: [28, [...stem(10, 0, 48, 9, false, true), [ell(14, 64, 4.5, 4.5)]]],
+  j: [30, [...stem(11, -20, 48, 9, false, false), [arcBand(15, -10, 9, 9, 180, 270, 6)], [ell(15, 64, 4.5, 4.5)]]],
+  k: [54, [...stem(10, 0, 72, 9), [diagS(20, 24, 42, 48, 4.5, 7)], [diagS(20, 24, 42, 0, 4.5, 7)]]],
+  l: [28, [...stem(10, 0, 72, 9)]],
+  m: [58, [...stem(6, 0, 48, 9), [arcBand(20, 34, 14, 15, 0, 180, 8)], ...stem(26, 0, 34, 9, false, true), [arcBand(40, 34, 14, 15, 0, 180, 8)], ...stem(46, 0, 34, 9, false, true)]],
+  n: [54, [...stem(10, 0, 48, 9), [arcBand(26, 34, 18, 15.5, 0, 180, 8)], ...stem(36, 0, 34, 9, false, true)]],
+  o: [54, [bowl(27, 24, 20, 25.5, 8)]],
+  p: [54, [...stem(10, -24, 48, 9, false, false), bowl(27, 24, 20, 25.5, 8)]],
+  q: [54, [bowl(27, 24, 20, 25.5, 8), ...stem(37, -24, 48, 9, false, false)]],
+  r: [54, [...stem(10, 0, 48, 9), [arcBandT(24, 28, 13, 15, -30, 100, 3, 8)]]],
+  s: [54, [[arcBand(27, 39, 14, 11, 30, 285, 7)], [arcBand(27, 11, 15, 13, 195, 450, 7)]]],
+  t: [36, [...stem(14, -2, 68, 9, false, true), [barT(4, 32, 46.5, 7, 2)]]],
+  u: [54, [...stem(10, 0, 48, 9), ...stem(36, 0, 48, 9), [arcBand(27, 12, 14, 13.5, 180, 360, 8)]]],
   v: [54, [[diagS(8, 48, 26, -1, 8, 3.5)], [diagS(26, -1, 44, 48, 3.5, 8)]]],
   w: [50, [[diagS(6, 48, 17, -1, 7, 3)], [diagS(17, -1, 28, 48, 3, 7)], [diagS(28, 48, 39, -1, 7, 3)], [diagS(39, -1, 48, 48, 3, 7)]]],
   x: [54, [[diagX(10, 48, 42, 0, 7, 4.5)], [diagX(42, 48, 10, 0, 7, 4.5)]]],
   y: [54, [[curveStroke([8, 48], [20, 14], [26, 2], 8, 7)], [curveStroke([44, 48], [32, 14], [26, 2], 8, 7)], [curveStroke([26, 2], [27, -8], [15, -20], 7, 4)]]],
-  z: [54, [[rect(8, 42, 46, 49)], [diagX(46, 48, 8, 0, 7, 5)], [rect(8, 0, 46, 7)]]],
+  z: [54, [[barT(8, 46, 45.5, 7, 2)], [diagX(46, 48, 8, 0, 7, 5)], [barT(8, 46, 3.5, 7, 2)]]],
   " ": [28, []],
   ".": [28, [[ell(26, 3, 3.5, 3.5)]]],
   ",": [28, [[ell(26, 3, 3.5, 3.5)], [diag(28, 2, 20, -12, 5)]]],
@@ -489,26 +510,45 @@ const FONT: Record<string, OGlyph> = {
 // serifs (stemS), thick/thin contrast in bowls and arcs (bowlC/arcC), and
 // tapered diagonals (diagT). Same advances as the sans face, so the title
 // still fits exactly as before.
+// Serif face — (r9) digambar ulang dari nol agar menyerupai serif judul
+// top-1 (@yoshifumi-nagata): old-style/transitional koran — kontras
+// tebal/tipis KUAT (stem 10-11, hairline 3.5), bracketed serif BESAR
+// (stemS s=4 h=5 b=6), warna HITAM padat, spacing rapat. Dipakai untuk
+// judul besar, badge "18", DAN sub-judul italic di bawah judul (seperti
+// top-1). Semua advance SAMA seperti r8, jadi judul tetap muat persis.
+// Glyph baru untuk sub-judul: E t h i g p u w f , . — seluruh kalimat
+// sub-judul kini serif penuh (tidak ada fallback ke sans).
 const SERIF: Record<string, OGlyph> = {
-  "0": [60, [bowlC(28, 35, 20, 32, 9, 5)]],
-  "1": [60, [stemS(26, 0, 70, 11, false, true), [diagT(17, 55, 29, 70, 7, 5)]]],
-  "2": [60, [[arcC(28, 54, 16, 13, -10, 190, 7, 4)], [diagT(44, 52, 12, 6, 6, 6)], [rect(8, 0, 48, 7)]]],
-  "6": [60, [[arcC(28, 40, 15, 18, 90, 270, 7, 4)], bowlC(28, 22, 15, 18, 8, 4)]],
-  "8": [60, [bowlC(28, 52, 14, 14, 8, 4), bowlC(28, 20, 15, 16, 8, 4)]],
-  W: [60, [[diagT(4, 70, 14, 0, 10, 6)], [diagT(14, 0, 28, 70, 6, 10)], [diagT(28, 70, 42, 0, 10, 6)], [diagT(42, 0, 52, 70, 6, 10)]]],
+  "0": [60, [bowlC(28, 35, 20, 32, 10, 3.5)]],
+  "1": [60, [stemS(27, 0, 70, 11, false, true), [diagT(16, 54, 28, 70, 6, 4)]]],
+  "2": [60, [[arcC(28, 54, 16, 13, -10, 190, 8, 3.5)], [diagT(44, 52, 12, 6, 6, 6)], [rect(8, 0, 48, 6)]]],
+  "6": [60, [[arcC(28, 40, 15, 18, 90, 270, 8, 3.5)], bowlC(28, 22, 15, 18, 10, 3.5)]],
+  "8": [60, [bowlC(28, 52, 14, 14, 9, 3.5), bowlC(28, 20, 15, 16, 10, 3.5)]],
+  W: [60, [[diagT(4, 70, 14, 0, 11, 5)], [diagT(14, 0, 28, 70, 5, 4)], [diagT(28, 70, 42, 0, 4, 5)], [diagT(42, 0, 52, 70, 5, 11)], [rect(10, 0, 18, 3)], [rect(38, 0, 46, 3)]]],
   N: [60, [stemS(8, 0, 70, 11), [diagT(10, 68, 46, 2, 7, 5)], stemS(39, 0, 70, 11)]],
-  a: [54, [bowlC(26, 41, 12, 8, 5, 3), bowlC(26, 18, 18, 19.5, 9, 4), stemS(37, 0, 48, 10)]],
-  b: [54, [stemS(10, 0, 72, 10), bowlC(27, 24, 19, 25.5, 9, 4)]],
-  d: [54, [bowlC(27, 24, 19, 25.5, 9, 4), stemS(37, 0, 72, 10)]],
-  e: [54, [[arcC(27, 24, 19, 25.5, 25, 335, 7, 4)], [rect(10, 24, 44, 28)]]],
-  m: [58, [stemS(6, 0, 48, 10), [arcC(20, 34, 14, 15, 0, 180, 7, 4)], stemS(26, 0, 34, 10, false, true), [arcC(40, 34, 14, 15, 0, 180, 7, 4)], stemS(46, 0, 34, 10, false, true)]],
-  n: [54, [stemS(10, 0, 48, 10), [arcC(26, 34, 18, 15.5, 0, 180, 7, 4)], stemS(36, 0, 34, 10, false, true)]],
-  o: [54, [bowlC(27, 24, 19, 25.5, 9, 4)]],
-  r: [54, [stemS(10, 0, 48, 10), [arcC(23, 34, 14, 15, 0, 120, 6, 3)], [rect(32, 22, 38, 34)]]],
-  s: [54, [[arcC(27, 38, 15, 11.5, 25, 270, 7, 4)], [arcC(27, 12, 15, 13.5, 200, 450, 7, 4)]]],
-  v: [54, [[diagT(8, 48, 26, 0, 10, 5)], [diagT(44, 48, 26, 0, 6, 5)]]],
-  y: [54, [[curveStroke([8, 48], [20, 16], [26, 4], 10, 7)], [curveStroke([44, 48], [32, 16], [26, 4], 7, 7)], [curveStroke([26, 4], [27, -6], [15, -20], 7, 4)]]],
+  E: [54, [stemS(8, 0, 70, 11), [rect(8, 63, 46, 70)], [rect(8, 31, 38, 38)], [rect(8, 0, 46, 7)]]],
+  a: [54, [bowlC(26, 41, 12, 8, 6, 3), bowlC(26, 18, 18, 19.5, 10, 3.5), stemS(37, 0, 48, 10)]],
+  b: [54, [stemS(10, 0, 72, 10), bowlC(27, 24, 20, 25.5, 10, 3.5)]],
+  d: [54, [bowlC(27, 24, 20, 25.5, 10, 3.5), stemS(37, 0, 72, 10)]],
+  e: [54, [[arcC(27, 24, 20, 25.5, 25, 335, 9, 3.5)], [rect(10, 24, 44, 28)]]],
+  f: [48, [stemS(20, 0, 66, 10, false, true), [arcBandT(24, 58, 9, 9, 0, 180, 4, 8)], [barT(8, 38, 46.5, 7, 2)]]],
+  g: [54, [bowlC(26, 34.5, 16, 15, 9, 3.5), bowlC(26, -9, 13, 12, 9, 3.5), stemS(34, -21, 48, 10, true, false)]],
+  h: [54, [stemS(10, 0, 72, 10), [arcC(23, 34, 15, 15.5, 0, 180, 9, 3.5)], stemS(36, 0, 34, 10, false, true)]],
+  i: [28, [stemS(10, 0, 48, 10, false, true), [ell(14, 64, 4.5, 4.5)]]],
+  m: [58, [stemS(6, 0, 48, 10), [arcC(20, 34, 14, 15, 0, 180, 9, 3.5)], stemS(26, 0, 34, 10, false, true), [arcC(40, 34, 14, 15, 0, 180, 9, 3.5)], stemS(46, 0, 34, 10, false, true)]],
+  n: [54, [stemS(10, 0, 48, 10), [arcC(26, 34, 18, 15.5, 0, 180, 9, 3.5)], stemS(36, 0, 34, 10, false, true)]],
+  o: [54, [bowlC(27, 24, 20, 25.5, 10, 3.5)]],
+  p: [54, [stemS(10, -24, 48, 10, false, false), bowlC(27, 24, 20, 25.5, 10, 3.5)]],
+  r: [54, [stemS(10, 0, 48, 10), [arcBandT(23, 34, 14, 15, -20, 120, 3, 8)]]],
+  s: [54, [[arcC(27, 38, 15, 11.5, 25, 285, 9, 5)], [arcC(27, 12, 15, 13.5, 195, 450, 9, 5)]]],
+  t: [36, [stemS(14, -2, 68, 10, false, true), [barT(4, 32, 46.5, 7, 2)]]],
+  u: [54, [stemS(10, 0, 48, 10), stemS(36, 0, 48, 10), [arcC(27, 12, 14, 13.5, 180, 360, 9, 3.5)]]],
+  v: [54, [[diagT(8, 48, 26, 0, 10, 4)], [diagT(44, 48, 26, 0, 4, 4)]]],
+  w: [50, [[diagT(6, 48, 17, -1, 9, 4)], [diagT(17, -1, 28, 48, 4, 4)], [diagT(28, 48, 39, -1, 4, 4)], [diagT(39, -1, 48, 48, 4, 9)]]],
+  y: [54, [[curveStroke([8, 48], [20, 16], [26, 4], 10, 7)], [curveStroke([44, 48], [32, 16], [26, 4], 7, 7)], [curveStroke([26, 4], [24, -8], [10, -22], 7, 3.5)]]],
   " ": [28, []],
+  ",": [28, [[ell(26, 3, 3.5, 3.5)], [diag(28, 2, 20, -12, 5)]]],
+  ".": [28, [[ell(26, 3, 3.5, 3.5)]]],
 };
 
 // Even-odd scanline fill over several contours at once (a ring = outer +
@@ -1222,7 +1262,7 @@ function drawPoster(): void {
   drawText("39 STORIES • 7 REGIONS • 15 DRAWN • ONE PAGE", 996, 20, 11, GOLD, { align: "right", weight: 6, ls: 1 });
   const dateSize = fitSize("Wednesday 18 November 2026", 886, 46, 0, "serif");
   drawText("Wednesday 18 November 2026", 110, 82, dateSize, WHITE, { weight: 7, face: "serif" });
-  drawText("Everything on this page happened, or was first reported, on Wednesday 18 November 2026.", 110, 106, 13, hex("#c9d4e6"), { weight: 5, italic: true });
+  drawText("Everything on this page happened, or was first reported, on Wednesday 18 November 2026.", 110, 106, 13, hex("#c9d4e6"), { weight: 5, italic: true, face: "serif" });
   // region bar: colored segments, one per region, widths by story count (total 39)
   const regions: [string, number, RGB][] = [
     ["ASIA", 7, GOLD], ["EUROPE", 8, BLUE], ["AMERICAS", 10, GREEN], ["MIDDLE EAST", 6, RED],
