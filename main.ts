@@ -284,6 +284,9 @@ const bowlC = (cx: number, cy: number, rx: number, ry: number, thSide: number, t
 ];
 // Contrast arc band (serif face): thickness varies from thSide at the
 // horizontal extremes to thTop at the vertical extremes (vertical stress).
+// (r8) the profile is cos^2, not |cos|: the thin extremes are a smooth
+// swell instead of a kinked V minimum, so the thin parts of contrast arcs
+// no longer read as pinched at 2x zoom.
 const arcC = (cx: number, cy: number, rx: number, ry: number, a0: number, a1: number, thSide: number, thTop: number, n = 24): Ctr => {
   const p: Ctr = [];
   for (let i = 0; i <= n; i++) {
@@ -292,7 +295,7 @@ const arcC = (cx: number, cy: number, rx: number, ry: number, a0: number, a1: nu
   }
   for (let i = n; i >= 0; i--) {
     const a = ((a0 + ((a1 - a0) * i) / n) * Math.PI) / 180;
-    const th = thTop + (thSide - thTop) * Math.abs(Math.cos(a));
+    const th = thTop + (thSide - thTop) * Math.cos(a) * Math.cos(a);
     p.push([cx + (rx - th) * Math.cos(a), cy + (ry - th) * Math.sin(a)]);
   }
   return p;
@@ -333,6 +336,69 @@ const curveStroke = (p0: [number, number], p1: [number, number], p2: [number, nu
   }
   return [...left, ...right.reverse()];
 };
+// Smooth-tapered diagonal (r8): a closed outline along a straight segment
+// whose width varies smoothly (cosine-eased) from w0 at the start to w1 at
+// the end, so a diagonal stroke reads as drawn, not extruded. Thin at a
+// vertex, full at a free end: V/v/W/w get sharp points, K/k get a clean
+// shared vertex, A/M/Y get a sharp apex. Letters only — digits keep diag().
+const diagS = (x0: number, y0: number, x1: number, y1: number, w0: number, w1: number, n = 8): Ctr => {
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  const len = Math.hypot(dx, dy) || 1;
+  const nx = -dy / len;
+  const ny = dx / len;
+  const left: Ctr = [];
+  const right: Ctr = [];
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    const e = (1 - Math.cos(t * Math.PI)) / 2;
+    const w = (w0 + (w1 - w0) * e) / 2;
+    const x = x0 + dx * t;
+    const y = y0 + dy * t;
+    left.push([x + nx * w, y + ny * w]);
+    right.push([x - nx * w, y - ny * w]);
+  }
+  return [...left, ...right.reverse()];
+};
+// Swell diagonal (r8): width is wEnd at both ends and wMid in the middle
+// (sine profile), so crossing strokes ('x', 'X') and the 'Z'/'z' diagonal
+// taper toward their free ends while the crossing stays full.
+const diagX = (x0: number, y0: number, x1: number, y1: number, wMid: number, wEnd: number, n = 8): Ctr => {
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  const len = Math.hypot(dx, dy) || 1;
+  const nx = -dy / len;
+  const ny = dx / len;
+  const left: Ctr = [];
+  const right: Ctr = [];
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    const w = (wEnd + (wMid - wEnd) * Math.sin(t * Math.PI)) / 2;
+    const x = x0 + dx * t;
+    const y = y0 + dy * t;
+    left.push([x + nx * w, y + ny * w]);
+    right.push([x - nx * w, y - ny * w]);
+  }
+  return [...left, ...right.reverse()];
+};
+// Tapered arc band (r8): thickness varies smoothly (cosine) from th0 at a0
+// to th1 at a1, so an arc terminal (the 'r' shoulder, the 'f' hook) tapers
+// to a fine end instead of a blunt flat cut.
+const arcBandT = (cx: number, cy: number, rx: number, ry: number, a0: number, a1: number, th0: number, th1: number, n = 24): Ctr => {
+  const p: Ctr = [];
+  for (let i = 0; i <= n; i++) {
+    const a = ((a0 + ((a1 - a0) * i) / n) * Math.PI) / 180;
+    p.push([cx + rx * Math.cos(a), cy + ry * Math.sin(a)]);
+  }
+  for (let i = n; i >= 0; i--) {
+    const t = i / n;
+    const e = (1 - Math.cos(t * Math.PI)) / 2;
+    const th = th0 + (th1 - th0) * e;
+    const a = ((a0 + ((a1 - a0) * i) / n) * Math.PI) / 180;
+    p.push([cx + (rx - th) * Math.cos(a), cy + (ry - th) * Math.sin(a)]);
+  }
+  return p;
+};
 const FONT: Record<string, OGlyph> = {
   "0": [60, [bowl(28, 35, 20, 32, 7)]],
   "1": [60, [...stem(26, 0, 70, 11), [diag(18, 56, 30, 70, 7)]]],
@@ -344,7 +410,7 @@ const FONT: Record<string, OGlyph> = {
   "7": [60, [[rect(8, 63, 48, 70)], [diag(46, 70, 24, 0, 7)]]],
   "8": [60, [bowl(28, 52, 14, 14, 7), bowl(28, 20, 15, 16, 7)]],
   "9": [60, [bowl(28, 48, 15, 18, 7), ...stem(38, 0, 50, 9, false, false)]],
-  A: [60, [[diag(6, 0, 28, 70, 9)], [diag(28, 70, 50, 0, 9)], [rect(14, 23, 42, 30)]]],
+  A: [60, [[diagS(6, 0, 28, 71.5, 9, 4.5)], [diagS(28, 71.5, 50, 0, 4.5, 9)], [rect(14, 23, 42, 30)]]],
   B: [60, [...stem(8, 0, 70, 11), bowlC(29, 54, 15, 17.5, 8, 6), bowlC(29, 18, 15, 19.5, 8, 6)]],
   C: [60, [[arcC(28, 35, 21, 36.5, 45, 315, 8, 6)]]],
   D: [60, [...stem(8, 0, 70, 11), [ell(30, 35, 21, 36.5), ell(30, 35, 13, 30.5)]]],
@@ -353,58 +419,58 @@ const FONT: Record<string, OGlyph> = {
   G: [60, [[arcC(28, 35, 21, 36.5, 45, 315, 8, 6)], [rect(28, 27, 48, 34)], ...stem(43, 4, 30, 7, false, false)]],
   H: [60, [...stem(8, 0, 70, 11), ...stem(39, 0, 70, 11), [rect(8, 31, 49, 38)]]],
   I: [60, [[rect(24, 0, 35, 70)], [rect(14, 63, 38, 70)], [rect(14, 0, 38, 7)]]],
-  J: [60, [...stem(34, 0, 70, 11, true, false), [arcBand(30, 12, 16, 12, 180, 270, 7)]]],
-  K: [60, [...stem(8, 0, 70, 11), [diag(16, 34, 44, 70, 8)], [diag(22, 26, 44, 0, 8)]]],
+  J: [60, [...stem(34, 0, 70, 11, true, false), [arcBand(30, 12, 16, 12, 180, 295, 7)]]],
+  K: [60, [...stem(8, 0, 70, 11), [diagS(20, 24, 44, 70, 5, 8)], [diagS(20, 24, 44, 0, 5, 8)]]],
   L: [60, [...stem(8, 0, 70, 11), [rect(8, 0, 48, 7)]]],
-  M: [60, [...stem(6, 0, 70, 11), [diag(6, 70, 28, 28, 8)], [diag(28, 28, 50, 70, 8)], ...stem(47, 0, 70, 11)]],
+  M: [60, [...stem(6, 0, 70, 11), [diagS(6, 70, 28, 28, 8, 4)], [diagS(28, 28, 50, 70, 4, 8)], ...stem(47, 0, 70, 11)]],
   N: [60, [...stem(8, 0, 70, 11), [diag(8, 70, 48, 0, 8)], ...stem(39, 0, 70, 11)]],
   O: [60, [bowlC(28, 35, 22, 36.5, 8, 6)]],
   P: [60, [...stem(8, 0, 70, 11), bowlC(29, 54, 15, 17.5, 8, 6)]],
   Q: [60, [bowlC(28, 35, 22, 36.5, 8, 6), [diag(38, 14, 52, -4, 6)]]],
-  R: [60, [...stem(8, 0, 70, 11), bowlC(29, 54, 15, 17.5, 8, 6), [diag(28, 36, 48, 0, 7)]]],
+  R: [60, [...stem(8, 0, 70, 11), bowlC(29, 54, 15, 17.5, 8, 6), [diagS(28, 36, 48, 0, 5, 7.5)]]],
   S: [60, [[arcC(28, 53, 17, 18.5, 25, 270, 8, 6)], [arcC(28, 18, 17, 19.5, 200, 450, 8, 6)]]],
   T: [60, [[rect(6, 63, 50, 70)], ...stem(24, 0, 70, 11)]],
   U: [60, [...stem(8, 0, 70, 11), ...stem(39, 0, 70, 11), [arcC(28, 12, 15, 13.5, 180, 360, 8, 6)]]],
-  V: [60, [[diag(8, 70, 28, 0, 9)], [diag(28, 0, 48, 70, 9)]]],
-  W: [60, [[diag(4, 70, 14, 0, 7)], [diag(14, 0, 28, 70, 7)], [diag(28, 70, 42, 0, 7)], [diag(42, 0, 52, 70, 7)]]],
-  X: [60, [[diag(10, 70, 46, 0, 8)], [diag(46, 70, 10, 0, 8)]]],
-  Y: [60, [[diag(8, 70, 28, 36, 9)], [diag(48, 70, 28, 36, 9)], ...stem(24, 0, 38, 11)]],
-  Z: [60, [[rect(8, 63, 48, 70)], [diag(48, 70, 8, 0, 6)], [rect(8, 0, 48, 7)]]],
+  V: [60, [[diagS(8, 70, 28, -1, 9, 4)], [diagS(28, -1, 48, 70, 4, 9)]]],
+  W: [60, [[diagS(4, 70, 14, -1, 7, 3)], [diagS(14, -1, 28, 70, 3, 7)], [diagS(28, 70, 42, -1, 7, 3)], [diagS(42, -1, 52, 70, 3, 7)]]],
+  X: [60, [[diagX(10, 70, 46, 0, 8, 5)], [diagX(46, 70, 10, 0, 8, 5)]]],
+  Y: [60, [[diagS(8, 70, 28, 36, 9, 5)], [diagS(48, 70, 28, 36, 9, 5)], ...stem(24, 0, 38, 11)]],
+  Z: [60, [[rect(8, 63, 48, 70)], [diagX(48, 70, 8, 0, 7, 5)], [rect(8, 0, 48, 7)]]],
   a: [54, [bowlC(26, 24, 19, 25.5, 7, 5), ...stem(37, 8, 48, 10)]],
   b: [54, [...stem(10, 0, 72, 10), bowlC(27, 24, 19, 25.5, 7, 5)]],
   c: [54, [[arcC(27, 24, 19, 25.5, 50, 310, 7, 5)]]],
   d: [54, [bowlC(27, 24, 19, 25.5, 7, 5), ...stem(37, 0, 72, 10)]],
   e: [54, [[arcC(27, 24, 19, 25.5, 25, 335, 7, 5)], [rect(10, 24, 44, 28)]]],
-  f: [48, [...stem(20, 0, 66, 10, false, true), [arcBand(24, 58, 9, 9, 0, 180, 7)], [rect(8, 43, 38, 50)]]],
+  f: [48, [...stem(20, 0, 66, 10, false, true), [arcBandT(24, 58, 9, 9, 0, 180, 4, 7)], [rect(8, 43, 38, 50)]]],
   g: [54, [bowlC(26, 34.5, 16, 15, 7, 5), bowlC(26, -9, 13, 12, 7, 5), ...stem(34, -21, 48, 10, true, false)]],
   h: [54, [...stem(10, 0, 72, 10), [arcC(23, 34, 15, 15.5, 0, 180, 7, 5)], ...stem(36, 0, 34, 10, false, true)]],
-  i: [28, [...stem(10, 0, 48, 10, false, true), [rect(10, 60, 18, 68)]]],
-  j: [30, [...stem(11, -20, 48, 10, false, false), [arcBand(15, -10, 9, 9, 180, 270, 6)], [rect(11, 60, 19, 68)]]],
-  k: [54, [...stem(10, 0, 72, 10), [diag(18, 26, 42, 48, 7)], [diag(22, 20, 42, 0, 7)]]],
+  i: [28, [...stem(10, 0, 48, 10, false, true), [ell(14, 64, 4.5, 4.5)]]],
+  j: [30, [...stem(11, -20, 48, 10, false, false), [arcBand(15, -10, 9, 9, 180, 270, 6)], [ell(15, 64, 4.5, 4.5)]]],
+  k: [54, [...stem(10, 0, 72, 10), [diagS(20, 24, 42, 48, 4.5, 7)], [diagS(20, 24, 42, 0, 4.5, 7)]]],
   l: [28, [...stem(10, 0, 72, 10)]],
   m: [58, [...stem(6, 0, 48, 10), [arcC(20, 34, 14, 15, 0, 180, 7, 5)], ...stem(26, 0, 34, 10, false, true), [arcC(40, 34, 14, 15, 0, 180, 7, 5)], ...stem(46, 0, 34, 10, false, true)]],
   n: [54, [...stem(10, 0, 48, 10), [arcC(26, 34, 18, 15.5, 0, 180, 7, 5)], ...stem(36, 0, 34, 10, false, true)]],
   o: [54, [bowlC(27, 24, 19, 25.5, 7, 5)]],
   p: [54, [...stem(10, -24, 48, 10, false, false), bowlC(27, 24, 19, 25.5, 7, 5)]],
   q: [54, [bowlC(27, 24, 19, 25.5, 7, 5), ...stem(37, -24, 48, 10, false, false)]],
-  r: [54, [...stem(10, 0, 48, 10), [arcBand(24, 28, 13, 15, -30, 100, 7)]]],
+  r: [54, [...stem(10, 0, 48, 10), [arcBandT(24, 28, 13, 15, -30, 100, 4.5, 7)]]],
   s: [54, [[arcC(27, 38, 15, 11.5, 25, 270, 7, 5)], [arcC(27, 12, 15, 13.5, 200, 450, 7, 5)]]],
   t: [36, [...stem(14, -2, 68, 10, false, true), [rect(4, 43, 32, 50)]]],
   u: [54, [...stem(10, 0, 48, 10), ...stem(36, 0, 48, 10), [arcC(27, 12, 14, 13.5, 180, 360, 7, 5)]]],
-  v: [54, [[diag(8, 48, 26, 0, 8)], [diag(26, 0, 44, 48, 8)]]],
-  w: [50, [[diag(6, 48, 17, 0, 7)], [diag(17, 0, 28, 48, 7)], [diag(28, 48, 39, 0, 7)], [diag(39, 0, 48, 48, 7)]]],
-  x: [54, [[diag(10, 48, 42, 0, 7)], [diag(42, 48, 10, 0, 7)]]],
-  y: [54, [[diag(8, 48, 26, 6, 8)], [diag(26, 6, 44, 48, 8)], [curveStroke([26, 6], [27, -8], [15, -20], 8, 4)]]],
-  z: [54, [[rect(8, 42, 46, 49)], [diag(46, 48, 8, 0, 6)], [rect(8, 0, 46, 7)]]],
+  v: [54, [[diagS(8, 48, 26, -1, 8, 3.5)], [diagS(26, -1, 44, 48, 3.5, 8)]]],
+  w: [50, [[diagS(6, 48, 17, -1, 7, 3)], [diagS(17, -1, 28, 48, 3, 7)], [diagS(28, 48, 39, -1, 7, 3)], [diagS(39, -1, 48, 48, 3, 7)]]],
+  x: [54, [[diagX(10, 48, 42, 0, 7, 4.5)], [diagX(42, 48, 10, 0, 7, 4.5)]]],
+  y: [54, [[curveStroke([8, 48], [20, 14], [26, 2], 8, 7)], [curveStroke([44, 48], [32, 14], [26, 2], 8, 7)], [curveStroke([26, 2], [27, -8], [15, -20], 7, 4)]]],
+  z: [54, [[rect(8, 42, 46, 49)], [diagX(46, 48, 8, 0, 7, 5)], [rect(8, 0, 46, 7)]]],
   " ": [28, []],
-  ".": [28, [[rect(23, 0, 29, 6)]]],
-  ",": [28, [[rect(23, 0, 29, 6)], [diag(28, 2, 20, -12, 5)]]],
-  ":": [28, [[rect(23, 26, 29, 32)], [rect(23, 4, 29, 10)]]],
-  ";": [28, [[rect(23, 26, 29, 32)], [rect(23, 4, 29, 10)], [diag(28, 6, 20, -10, 5)]]],
+  ".": [28, [[ell(26, 3, 3.5, 3.5)]]],
+  ",": [28, [[ell(26, 3, 3.5, 3.5)], [diag(28, 2, 20, -12, 5)]]],
+  ":": [28, [[ell(26, 29, 3.5, 3.5)], [ell(26, 7, 3.5, 3.5)]]],
+  ";": [28, [[ell(26, 29, 3.5, 3.5)], [ell(26, 7, 3.5, 3.5)], [diag(28, 6, 20, -10, 5)]]],
   "'": [22, [[diag(15, 68, 10, 54, 6)]]],
   '"': [40, [[diag(13, 68, 8, 54, 6)], [diag(31, 68, 26, 54, 6)]]],
-  "!": [28, [[rect(23, 18, 29, 68)], [rect(23, 0, 29, 6)]]],
-  "?": [60, [[arcBand(28, 54, 14, 12, 200, 380, 7)], [diag(40, 48, 27, 30, 6)], [rect(24, 2, 30, 8)]]],
+  "!": [28, [[rect(23, 18, 29, 68)], [ell(26, 3, 3.5, 3.5)]]],
+  "?": [60, [[arcBand(28, 54, 14, 12, 200, 380, 7)], [diag(40, 48, 27, 30, 6)], [ell(27, 5, 3.5, 3.5)]]],
   "-": [34, [[rect(10, 24, 26, 30)]]],
   "—": [56, [[rect(4, 24, 52, 30)]]],
   "(": [30, [[arcBand(34, 35, 10, 33, 60, 300, 6)]]],
@@ -441,7 +507,7 @@ const SERIF: Record<string, OGlyph> = {
   r: [54, [stemS(10, 0, 48, 10), [arcC(23, 34, 14, 15, 0, 120, 6, 3)], [rect(32, 22, 38, 34)]]],
   s: [54, [[arcC(27, 38, 15, 11.5, 25, 270, 7, 4)], [arcC(27, 12, 15, 13.5, 200, 450, 7, 4)]]],
   v: [54, [[diagT(8, 48, 26, 0, 10, 5)], [diagT(44, 48, 26, 0, 6, 5)]]],
-  y: [54, [[diagT(8, 48, 26, 8, 10, 6)], [diagT(44, 48, 26, 8, 6, 6)], [curveStroke([26, 8], [27, -6], [15, -20], 6, 4)]]],
+  y: [54, [[curveStroke([8, 48], [20, 16], [26, 4], 10, 7)], [curveStroke([44, 48], [32, 16], [26, 4], 7, 7)], [curveStroke([26, 4], [27, -6], [15, -20], 7, 4)]]],
   " ": [28, []],
 };
 
