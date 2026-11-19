@@ -229,18 +229,16 @@ const diag = (x0: number, y0: number, x1: number, y1: number, w: number): Ctr =>
     [x0 - nx, y0 - ny],
   ];
 };
-// Vertical stem with small flat serifs; top/bot toggle the serif bars.
-const stem = (x: number, y0: number, y1: number, w: number, top = true, bot = true): Part[] => {
-  const ps: Part[] = [[rect(x, y0, x + w, y1)]];
-  if (top) ps.push([rect(x - 3, y1 - 3, x + w + 3, y1)]);
-  if (bot) ps.push([rect(x - 3, y0, x + w + 3, y0 + 3)]);
-  return ps;
+// Vertical stem: a plain even bar. No serifs — this is a clean sans face:
+// flat stem ends, even stroke width, straight sides.
+const stem = (x: number, y0: number, y1: number, w: number, _top = true, _bot = true): Part[] => {
+  return [[rect(x, y0, x + w, y1)]];
 };
 const FONT: Record<string, OGlyph> = {
   "0": [60, [bowl(28, 35, 20, 32, 7)]],
-  "1": [60, [...stem(26, 0, 70, 11), [diag(18, 56, 30, 70, 7)], [rect(16, -1, 44, 5)]]],
+  "1": [60, [...stem(26, 0, 70, 11), [diag(18, 56, 30, 70, 7)]]],
   "2": [60, [[arcBand(28, 54, 16, 13, -10, 190, 7)], [diag(44, 52, 12, 6, 7)], [rect(8, 0, 48, 7)]]],
-  "3": [60, [[arcBand(29, 54, 14, 13, 15, 270, 7)], [arcBand(29, 19, 15, 14, 200, 450, 7)], [rect(20, 32, 40, 40)]]],
+  "3": [60, [[arcBand(29, 54, 14, 13, -50, 180, 7)], [arcBand(29, 19, 15, 14, 180, 410, 7)], [rect(35, 28, 44, 46)]]],
   "4": [60, [[diag(40, 70, 12, 24, 7)], [rect(8, 19, 44, 26)], ...stem(32, 0, 70, 9, false, true)]],
   "5": [60, [[rect(10, 63, 44, 70)], ...stem(10, 36, 68, 9, false, false), [rect(10, 32, 32, 39)], [arcBand(28, 20, 15, 16, 250, 450, 7)]]],
   "6": [60, [[arcBand(28, 40, 15, 18, 90, 270, 7)], bowl(28, 22, 15, 18, 7)]],
@@ -255,7 +253,7 @@ const FONT: Record<string, OGlyph> = {
   F: [60, [...stem(8, 0, 70, 11), [rect(8, 63, 48, 70)], [rect(8, 31, 38, 38)]]],
   G: [60, [[arcBand(28, 35, 20, 33, 45, 315, 7)], [rect(28, 27, 48, 34)], ...stem(43, 4, 30, 7, false, false)]],
   H: [60, [...stem(8, 0, 70, 11), ...stem(39, 0, 70, 11), [rect(8, 31, 49, 38)]]],
-  I: [60, [...stem(24, 0, 70, 11), [rect(14, 63, 42, 70)], [rect(14, 0, 42, 7)]]],
+  I: [60, [...stem(24, 0, 70, 11)]],
   J: [60, [...stem(34, 0, 70, 11, true, false), [arcBand(30, 12, 16, 12, 180, 270, 7)]]],
   K: [60, [...stem(8, 0, 70, 11), [diag(16, 34, 44, 70, 8)], [diag(22, 26, 44, 0, 8)]]],
   L: [60, [...stem(8, 0, 70, 11), [rect(8, 0, 48, 7)]]],
@@ -383,7 +381,15 @@ function drawText(s: string, x: number, y: number, size: number, color: RGB, opt
   if (opts.align === "center") bx = x - w / 2;
   if (opts.align === "right") bx = x - w;
   for (const ch of s) {
-    bx += drawGlyph(ch, bx, y, size, color, weight) + ls;
+    const adv = drawGlyph(ch, bx, y, size, color, weight);
+    if (weight >= 7) {
+      // Bold: draw the same glyph twice more, shifted a hair left and right.
+      // Even stems get ~25% thicker; counters stay open; advance unchanged.
+      const off = (size / 70) * 0.9;
+      drawGlyph(ch, bx - off, y, size, color, weight);
+      drawGlyph(ch, bx + off, y, size, color, weight);
+    }
+    bx += adv + ls;
   }
 }
 function wrap(s: string, maxW: number, size: number, ls = 0): string[] {
@@ -541,25 +547,33 @@ function dashed(x0: number, y0: number, x1: number, y1: number, c: RGB): void {
   }
 }
 function drawGulf(x: number, y: number, w: number, h: number): void {
-  fillRect(x, y, w, h, hex("#1d4e89"));
-  fillPoly(
-    [[x + 150, y], [x + w, y], [x + w, y + 55], [x + 262, y + 48], [x + 212, y + 60], [x + 182, y + 40], [x + 162, y + 20]],
-    hex("#d9c9a3"),
-  );
-  fillPoly(
-    [[x + 180, y + h], [x + w, y + h], [x + w, y + 80], [x + 282, y + 88], [x + 242, y + 100], [x + 212, y + 118]],
-    hex("#d9c9a3"),
-  );
-  circle(x + 200, y + 42, 6, hex("#d9c9a3"));
-  drawText("QESHM", x + 210, y + 46, 10, WHITE, { weight: 6, ls: 1 });
-  dashed(x + 150, y + 30, x + 252, y + 84, RED);
-  dashed(x + 150, y + 38, x + 212, y + 92, RED);
-  circle(x + 252, y + 84, 5, WHITE);
-  circle(x + 252, y + 84, 3, RED);
-  circle(x + 212, y + 92, 5, WHITE);
-  circle(x + 212, y + 92, 3, RED);
-  drawText("KUWAIT", x + 262, y + 88, 10, WHITE, { weight: 6, ls: 1 });
-  drawText("BAHRAIN", x + 222, y + 108, 10, WHITE, { weight: 6, ls: 1 });
+  fillRect(x, y, w, h, hex("#16233d"));
+  // Stars
+  for (const [sx, sy] of [[30, 18], [90, 10], [150, 22], [210, 12], [270, 20], [120, 8]] as [number, number][]) disc(x + sx, y + sy, 1.5, WHITE);
+  // Airbase: white dome + base + lit doors
+  circle(x + 195, y + 80, 24, WHITE);
+  fillRect(x + 171, y + 80, 48, 24, hex("#16233d"));
+  fillRect(x + 150, y + 80, 90, 8, hex("#c9d4e6"));
+  fillRect(x + 184, y + 64, 5, 16, hex("#16233d"));
+  fillRect(x + 200, y + 64, 5, 16, hex("#16233d"));
+  // Drone flight paths (dashed red) from Qeshm (top-left) to the base
+  dashed(x + 20, y + 40, x + 178, y + 66, RED);
+  dashed(x + 40, y + 26, x + 208, y + 60, RED);
+  dashed(x + 60, y + 52, x + 198, y + 70, RED);
+  // Drones: small white crosses with dark bodies
+  for (const [dx, dy] of [[96, 52], [128, 42], [150, 62]] as [number, number][]) {
+    line(x + dx - 5, y + dy, x + dx + 5, y + dy, 2, WHITE);
+    line(x + dx, y + dy - 4, x + dx, y + dy + 4, 2, WHITE);
+    disc(x + dx, y + dy, 2, hex("#16233d"));
+  }
+  // Interception bursts where the paths end
+  for (const [bx, by] of [[178, 66], [208, 60]] as [number, number][]) {
+    disc(x + bx, y + by, 4, GOLD);
+    disc(x + bx, y + by, 2, WHITE);
+  }
+  drawText("QESHM", x + 38, y + 18, 10, WHITE, { weight: 6, ls: 1 });
+  drawText("KUWAIT", x + 252, y + 40, 10, WHITE, { weight: 6, ls: 1 });
+  drawText("BAHRAIN", x + 246, y + 96, 10, WHITE, { weight: 6, ls: 1 });
   fillRect(x, y + h - 22, w, 22, RED);
   drawText("ALL INTERCEPTED", x + w / 2, y + h - 7, 12, WHITE, { align: "center", weight: 7, ls: 2 });
 }
@@ -567,11 +581,14 @@ function drawApec(x: number, y: number, w: number, h: number): void {
   fillRect(x, y, w, 60, hex("#2b3a55"));
   fillRect(x, y + 60, w, 35, hex("#7a5a7a"));
   fillRect(x, y + 95, w, h - 95, hex("#d98a4b"));
+  // Sun over the skyline
+  disc(x + 272, y + 34, 13, hex("#f2c94c"));
   const towers: [number, number, number][] = [
     [0, 95, 26], [30, 80, 22], [56, 100, 30], [90, 70, 20], [114, 88, 26], [144, 75, 18],
     [166, 98, 28], [198, 82, 24], [226, 68, 20], [250, 92, 26], [280, 78, 32],
   ];
   for (const [tx, ty, tw] of towers) fillRect(x + tx, y + ty, tw, h - ty, hex("#1b1813"));
+  for (const [wx, wy] of [[36, 86], [96, 76], [150, 81], [204, 88], [256, 98], [286, 84]] as [number, number][]) fillRect(x + wx, y + wy, 4, 5, hex("#f2c94c"));
   const flag = (fx: number, cols: RGB[]) => {
     line(x + fx, y + 28, x + fx, y + 62, 2, WHITE);
     for (let i = 0; i < 3; i++) fillRect(x + fx + 2, y + 30 + i * 6, 26, 6, cols[i]);
@@ -581,6 +598,13 @@ function drawApec(x: number, y: number, w: number, h: number): void {
   flag(142, [RED, WHITE, RED]);
   fillRect(x + 144, y + 30, 10, 6, hex("#1d4e89"));
   flag(232, [WHITE, BLUE, RED]);
+  // Airplane on approach, white side view in front of the skyline
+  const py = y + 58;
+  fillPoly([[x + 96, py], [x + 186, py], [x + 194, py + 4], [x + 186, py + 8], [x + 96, py + 8]], WHITE);
+  fillPoly([[x + 186, py], [x + 208, py - 2], [x + 208, py + 8], [x + 186, py + 8]], WHITE);
+  fillPoly([[x + 100, py], [x + 112, py - 14], [x + 120, py - 14], [x + 114, py]], WHITE);
+  fillPoly([[x + 144, py + 8], [x + 158, py + 20], [x + 166, py + 20], [x + 156, py + 8]], WHITE);
+  for (let i = 0; i < 6; i++) fillRect(x + 116 + i * 11, py + 2, 6, 3, hex("#2b3a55"));
   drawText("SHENZHEN  •  21 ECONOMIES", x + 10, y + h - 8, 11, WHITE, { weight: 7, ls: 1 });
 }
 function drawKerch(x: number, y: number, w: number, h: number): void {
@@ -588,17 +612,32 @@ function drawKerch(x: number, y: number, w: number, h: number): void {
   fillRect(x, y + 52, w, h - 52, hex("#2e6b8a"));
   drawText("ROAD SPAN DOWN", x + w - 10, y + 18, 12, RED, { align: "right", weight: 7, ls: 1 });
   const deck = hex("#8a8378");
+  // Bridge towers + stay cables
+  fillRect(x + 60, y + 8, 6, 44, deck);
+  fillRect(x + 230, y + 8, 6, 44, deck);
+  line(x + 66, y + 12, x + 118, y + 48, 2, deck);
+  line(x + 230, y + 12, x + 196, y + 48, 2, deck);
+  // Intact deck (left) + rail span (right)
   fillRect(x, y + 48, 118, 8, deck);
   fillRect(x + 196, y + 48, w - 196, 8, deck);
   fillRect(x + 40, y + 56, 8, 24, deck);
   fillRect(x + 90, y + 56, 8, 24, deck);
   fillRect(x + 222, y + 56, 8, 24, deck);
   fillRect(x + 272, y + 56, 8, 24, deck);
-  poly([[x + 10, y + 48], [x + 60, y + 18], [x + 110, y + 48]], 5, deck, false);
+  // Train crossing the intact span
+  fillRect(x + 14, y + 34, 84, 12, hex("#1b1813"));
+  fillRect(x + 14, y + 34, 16, 12, RED);
+  for (let i = 0; i < 4; i++) fillRect(x + 20 + i * 18, y + 38, 10, 5, hex("#dfe7ea"));
+  disc(x + 24, y + 48, 3, INK);
+  disc(x + 88, y + 48, 3, INK);
+  // Collapsed span, tilted into the water
+  poly([[x + 118, y + 48], [x + 168, y + 18], [x + 196, y + 48]], 5, deck, false);
   line(x + 196, y + 48, x + 240, y + 92, 5, deck);
   line(x + 210, y + 48, x + 252, y + 96, 5, deck);
+  // Red X over the gap
   line(x + 148, y + 44, x + 166, y + 62, 4, RED);
   line(x + 166, y + 44, x + 148, y + 62, 4, RED);
+  // Waves
   for (const [wx, wy] of [[40, 92], [120, 108], [220, 96], [280, 116], [80, 122], [180, 118]] as [number, number][]) {
     line(x + wx, y + wy, x + wx + 18, y + wy, 2, WHITE);
   }
@@ -611,21 +650,36 @@ function cardStrip(x: number, y: number, w: number, h: number, c: RGB, t: string
 }
 function artDrones(x: number, y: number, w: number, h: number): void {
   fillRect(x, y, w, h, hex("#1d2b4a"));
-  dashed(x + 10, y + 6, x + 90, y + 22, hex("#e8b4b0"));
-  dashed(x + 30, y + 4, x + 130, y + 20, hex("#e8b4b0"));
-  dashed(x + 60, y + 8, x + 170, y + 24, hex("#e8b4b0"));
-  for (const [dx, dy] of [[90, 22], [130, 20], [170, 24]] as [number, number][]) {
+  // City silhouette along the bottom
+  for (const [bx, bw, bh] of [[8, 22, 8], [36, 16, 12], [58, 26, 7], [90, 18, 10], [114, 24, 8], [144, 16, 11], [170, 28, 7], [204, 18, 9]] as [number, number, number][]) fillRect(x + bx, y + 23 - bh, bw, bh, hex("#0e1830"));
+  // Drone flight paths
+  dashed(x + 10, y + 6, x + 90, y + 14, hex("#e8b4b0"));
+  dashed(x + 30, y + 4, x + 130, y + 12, hex("#e8b4b0"));
+  dashed(x + 60, y + 8, x + 170, y + 16, hex("#e8b4b0"));
+  for (const [dx, dy] of [[90, 14], [130, 12], [170, 16]] as [number, number][]) {
     disc(x + dx, y + dy, 3, WHITE);
     line(x + dx - 6, y + dy, x + dx + 6, y + dy, 2, WHITE);
   }
+  // One interception burst
+  disc(x + 200, y + 10, 4, GOLD);
+  disc(x + 200, y + 10, 2, WHITE);
   cardStrip(x, y, w, h, RED, "141 FIRED • 126 DOWNED");
 }
 function artFed(x: number, y: number, w: number, h: number): void {
   fillRect(x, y, w, h, hex("#efe6c8"));
-  for (const [bx, bh] of [[40, 18], [90, 13], [140, 8]] as [number, number][]) fillRect(x + bx, y + 27 - bh, 26, bh, hex("#8a8378"));
-  line(x + 30, y + 8, x + 200, y + 24, 3, RED);
-  line(x + 200, y + 24, x + 186, y + 20, 3, RED);
-  line(x + 200, y + 24, x + 192, y + 12, 3, RED);
+  // Classical bank: pediment + columns + steps
+  fillPoly([[x + 74, y + 2], [x + 96, y + 10], [x + 52, y + 10]], hex("#8a8378"));
+  fillRect(x + 52, y + 10, 44, 2, hex("#8a8378"));
+  for (const cx of [56, 68, 80]) fillRect(x + cx, y + 12, 5, 9, hex("#8a8378"));
+  fillRect(x + 50, y + 21, 48, 2, hex("#8a8378"));
+  // Green up arrow (more hikes)
+  line(x + 130, y + 20, x + 170, y + 6, 3, GREEN);
+  line(x + 170, y + 6, x + 158, y + 6, 3, GREEN);
+  line(x + 170, y + 6, x + 170, y + 16, 3, GREEN);
+  // Small red down tick for the Dow
+  line(x + 180, y + 8, x + 210, y + 18, 3, RED);
+  line(x + 210, y + 18, x + 202, y + 18, 3, RED);
+  line(x + 210, y + 18, x + 210, y + 10, 3, RED);
   cardStrip(x, y, w, h, GREEN, "DOW -561");
 }
 function artEu(x: number, y: number, w: number, h: number): void {
@@ -635,14 +689,25 @@ function artEu(x: number, y: number, w: number, h: number): void {
     disc(x + 34 + Math.cos(a) * 10, y + 14 + Math.sin(a) * 9, 1.6, GOLD);
   }
   drawText("€45bn", x + 62, y + 22, 20, WHITE, { weight: 7 });
+  // Small Ukraine flag at the right
+  fillRect(x + 196, y + 6, 26, 5, hex("#2b6cb0"));
+  fillRect(x + 196, y + 11, 26, 5, GOLD);
   cardStrip(x, y, w, h, GOLD, "FOR KYIV • 2027", INK);
 }
 function artJeffries(x: number, y: number, w: number, h: number): void {
   fillRect(x, y, w, h, hex("#dfe7ea"));
-  fillRect(x + 86, y + 6, 60, 21, NAVY);
-  fillRect(x + 100, y + 6, 32, 3, WHITE);
-  line(x + 92, y + 18, x + 104, y + 26, 3, GREEN);
-  line(x + 104, y + 26, x + 128, y + 8, 3, GREEN);
+  // Ballot checkbox + green check
+  fillRect(x + 14, y + 4, 16, 16, WHITE);
+  fillRect(x + 14, y + 4, 16, 2, NAVY);
+  fillRect(x + 14, y + 18, 16, 2, NAVY);
+  fillRect(x + 14, y + 4, 2, 16, NAVY);
+  fillRect(x + 28, y + 4, 2, 16, NAVY);
+  line(x + 17, y + 14, x + 22, y + 18, 3, GREEN);
+  line(x + 22, y + 18, x + 28, y + 7, 3, GREEN);
+  // Vote dot grid: 251 green vs 11 grey (schematic 23 vs 1)
+  for (let i = 0; i < 23; i++) disc(x + 44 + (i % 8) * 7, y + 7 + Math.floor(i / 8) * 6, 2, GREEN);
+  disc(x + 44 + 7 * 7, y + 19, 2, hex("#8a8378"));
+  drawText("251-11", x + 110, y + 20, 16, NAVY, { weight: 7 });
   cardStrip(x, y, w, h, NAVY, "251-11 • CAUCUS VOTE");
 }
 function artQuad(x: number, y: number, w: number, h: number): void {
@@ -658,26 +723,40 @@ function artQuad(x: number, y: number, w: number, h: number): void {
     for (let b = 0; b < 3; b++) fillRect(fx, y + 4 + b * 7, 44, 7, flags[f][b]);
     if (f === 2) disc(fx + 22, y + 14, 5, RED);
     if (f === 3) {
-      disc(fx + 10, y + 10, 2, WHITE);
-      disc(fx + 32, y + 18, 2, WHITE);
+      // Southern Cross: four stars in a cross pattern
+      disc(fx + 12, y + 9, 2, WHITE);
+      disc(fx + 32, y + 9, 2, WHITE);
+      disc(fx + 22, y + 14, 2, WHITE);
+      disc(fx + 22, y + 20, 2, WHITE);
     }
   }
   cardStrip(x, y, w, h, BLUE, "MANILA • 4 LEADERS");
 }
 function artPeltola(x: number, y: number, w: number, h: number): void {
   fillRect(x, y, w, h, BLUE);
-  disc(x + 30, y + 14, 6, GOLD);
-  drawText("56-44", x + 52, y + 22, 20, WHITE, { weight: 7 });
+  // Alaska outline (rough) with a gold star on Anchorage
+  fillPoly(
+    [[x + 8, y + 18], [x + 14, y + 8], [x + 26, y + 6], [x + 38, y + 10], [x + 44, y + 16], [x + 36, y + 20], [x + 22, y + 22], [x + 10, y + 22]],
+    hex("#7fa8d9"),
+  );
+  disc(x + 30, y + 14, 3, GOLD);
+  drawText("56-44", x + 62, y + 22, 20, WHITE, { weight: 7 });
+  // Small red/blue vote bars
+  fillRect(x + 176, y + 8, 22, 4, RED);
+  fillRect(x + 176, y + 14, 18, 4, WHITE);
   cardStrip(x, y, w, h, RED, "ALASKA FLIPS");
 }
 function artGaza(x: number, y: number, w: number, h: number): void {
   fillRect(x, y, w, h, hex("#d9c9a3"));
+  // Ceasefire (yellow) line across the scene
   fillRect(x, y + 18, w, 3, GOLD);
-  fillRect(x + 88, y + 8, 56, 10, INK);
-  fillRect(x + 104, y + 2, 20, 8, INK);
-  line(x + 144, y + 12, x + 168, y + 8, 3, INK);
-  disc(x + 100, y + 22, 4, INK);
-  disc(x + 132, y + 22, 4, INK);
+  drawText("NUSEIRAT", x + 8, y + 12, 8, INK, { weight: 6, ls: 1 });
+  // Tank crossing the line: turret + barrel + hull + track + wheels
+  fillRect(x + 104, y + 2, 22, 6, INK);
+  line(x + 126, y + 5, x + 152, y + 2, 3, INK);
+  fillRect(x + 88, y + 8, 56, 7, INK);
+  fillRect(x + 88, y + 15, 56, 3, INK);
+  for (const wx of [94, 108, 122, 136]) disc(x + wx, y + 19, 2.5, INK);
   cardStrip(x, y, w, h, RED, "ACROSS THE YELLOW LINE");
 }
 function artEbola(x: number, y: number, w: number, h: number): void {
@@ -685,41 +764,62 @@ function artEbola(x: number, y: number, w: number, h: number): void {
   for (const [vx, vy] of [[50, 13], [120, 10], [180, 15]] as [number, number][]) {
     for (let i = 0; i < 8; i++) {
       const a = (i / 8) * Math.PI * 2;
-      line(x + vx, y + vy, x + vx + Math.cos(a) * 9, y + vy + Math.sin(a) * 9, 2, hex("#d9c9f2"));
+      const len = i % 2 === 0 ? 10 : 6;
+      line(x + vx, y + vy, x + vx + Math.cos(a) * len, y + vy + Math.sin(a) * len, 2, hex("#d9c9f2"));
     }
     disc(x + vx, y + vy, 5, hex("#2e1a4a"));
+    disc(x + vx, y + vy, 2, hex("#d9c9f2"));
   }
   cardStrip(x, y, w, h, hex("#2e1a4a"), "11,504 CASES");
 }
 function artMeasles(x: number, y: number, w: number, h: number): void {
   fillRect(x, y, w, h, TEAL);
   for (const [bx, bh] of [[40, 8], [95, 14], [150, 20]] as [number, number][]) fillRect(x + bx, y + 27 - bh, 30, bh, WHITE);
+  // Rising trend line over the bars
+  line(x + 30, y + 20, x + 200, y + 6, 3, RED);
+  line(x + 200, y + 6, x + 190, y + 6, 3, RED);
+  line(x + 200, y + 6, x + 200, y + 14, 3, RED);
   cardStrip(x, y, w, h, hex("#0b4f49"), "5,412 CASES");
 }
 function artAn12(x: number, y: number, w: number, h: number): void {
   fillRect(x, y, w, h, hex("#7a8a99"));
-  fillRect(x + 60, y + 12, 110, 7, INK);
-  fillPoly([[x + 100, y + 12], [x + 130, y + 24], [x + 112, y + 24]], INK);
-  fillPoly([[x + 160, y + 12], [x + 176, y + 2], [x + 182, y + 12]], INK);
-  fillRect(x + 60, y + 8, 12, 11, INK);
+  // Cargo plane, side view, nose right
+  fillPoly([[x + 50, y + 12], [x + 170, y + 12], [x + 182, y + 15], [x + 170, y + 18], [x + 50, y + 18]], INK);
+  fillPoly([[x + 52, y + 12], [x + 62, y + 2], [x + 70, y + 2], [x + 66, y + 12]], INK);
+  fillPoly([[x + 100, y + 18], [x + 118, y + 22], [x + 126, y + 22], [x + 112, y + 18]], INK);
+  for (let i = 0; i < 5; i++) fillRect(x + 84 + i * 14, y + 14, 7, 3, hex("#dfe7ea"));
+  // Crash marker: red X at the right
+  line(x + 196, y + 6, x + 208, y + 18, 3, RED);
+  line(x + 208, y + 6, x + 196, y + 18, 3, RED);
   cardStrip(x, y, w, h, INK, "19 ABOARD");
 }
 function artXavier(x: number, y: number, w: number, h: number): void {
   fillRect(x, y, w, h, hex("#0f4c5c"));
-  ring(x + 116, y + 14, 10, 2, WHITE);
-  ring(x + 116, y + 14, 6, 2, WHITE);
-  disc(x + 116, y + 14, 2.5, GOLD);
-  line(x + 40, y + 8, x + 90, y + 14, 2, WHITE);
-  line(x + 150, y + 20, x + 195, y + 10, 2, WHITE);
+  // Cyclone spiral: offset rings + gold eye
+  ring(x + 114, y + 12, 11, 2, WHITE);
+  ring(x + 118, y + 13, 7, 2, WHITE);
+  disc(x + 116, y + 12, 2.5, GOLD);
+  // Rain bands + island dots
+  line(x + 30, y + 6, x + 80, y + 12, 2, WHITE);
+  line(x + 150, y + 18, x + 200, y + 8, 2, WHITE);
+  disc(x + 60, y + 18, 2, GOLD);
+  disc(x + 180, y + 16, 2, GOLD);
   cardStrip(x, y, w, h, hex("#083038"), "220 KM/H • CAT 5");
 }
 function artCop(x: number, y: number, w: number, h: number): void {
   fillRect(x, y, w, h, CREAM);
-  fillRect(x + 88, y + 3, 56, 24, WHITE);
-  fillRect(x + 94, y + 8, 44, 2, hex("#8a8378"));
-  fillRect(x + 94, y + 13, 44, 2, hex("#8a8378"));
-  fillRect(x + 94, y + 18, 30, 2, hex("#8a8378"));
-  disc(x + 150, y + 14, 6, GREEN);
+  // Small globe at the left
+  disc(x + 24, y + 12, 8, BLUE);
+  disc(x + 22, y + 10, 3, GREEN);
+  disc(x + 27, y + 15, 2, GREEN);
+  // Draft document with text lines + green check
+  fillRect(x + 56, y + 3, 56, 20, WHITE);
+  fillRect(x + 62, y + 8, 44, 2, hex("#8a8378"));
+  fillRect(x + 62, y + 13, 44, 2, hex("#8a8378"));
+  fillRect(x + 62, y + 18, 30, 2, hex("#8a8378"));
+  disc(x + 150, y + 12, 8, GREEN);
+  line(x + 145, y + 12, x + 149, y + 16, 2, WHITE);
+  line(x + 149, y + 16, x + 156, y + 7, 2, WHITE);
   cardStrip(x, y, w, h, GREEN, "PHASE-OUT?");
 }
 function drawCardArt(n: number, x: number, y: number, w: number, h: number): void {
@@ -754,6 +854,16 @@ const DOTS: [number, number, number][] = [
   [0.0, 53.0, 6], [-81.0, 35.0, 7], [124.0, 12.0, 8], [-150.0, 64.0, 9], [41.0, 27.0, 10],
   [25.0, -2.0, 11], [-92.0, 29.0, 12], [86.0, 55.4, 13], [-160.0, -21.2, 14], [32.0, 35.0, 15],
 ];
+// Point-in-polygon (ray casting) over a lon/lat polygon.
+function inPoly(lon: number, lat: number, poly: [number, number][]): boolean {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i];
+    const [xj, yj] = poly[j];
+    if (yi > lat !== yj > lat && lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
 function drawWorldMap(x: number, y: number, w: number, h: number): void {
   drawText("WHERE IT HAPPENED", x, y + 18, 12, INK, { weight: 6, ls: 1 });
   const mx = x;
@@ -765,8 +875,14 @@ function drawWorldMap(x: number, y: number, w: number, h: number): void {
     mx + ((lon + 180) / 360) * mw,
     my + ((90 - lat) / 150) * mh,
   ];
-  for (const cont of CONTINENTS) {
-    fillPoly(cont.map(([lo, la]) => proj(lo, la)), hex("#aab8bd"));
+  // Dotted continents, like the top entries: small dots on a grid, drawn
+  // only where the dot falls inside a continent polygon.
+  for (let gx = mx + 3; gx < mx + mw; gx += 6) {
+    for (let gy = my + 3; gy < my + mh; gy += 6) {
+      const lon = ((gx - mx) / mw) * 360 - 180;
+      const lat = 90 - ((gy - my) / mh) * 150;
+      if (CONTINENTS.some((c) => inPoly(lon, lat, c))) disc(gx, gy, 1.5, hex("#8fa3ab"));
+    }
   }
   for (const [lo, la, n] of DOTS) {
     const [dx, dy] = proj(lo, la);
