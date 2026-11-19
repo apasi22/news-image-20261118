@@ -229,10 +229,15 @@ const diag = (x0: number, y0: number, x1: number, y1: number, w: number): Ctr =>
     [x0 - nx, y0 - ny],
   ];
 };
-// Vertical stem: a plain even bar. No serifs — this is a clean sans face:
-// flat stem ends, even stroke width, straight sides.
-const stem = (x: number, y0: number, y1: number, w: number, _top = true, _bot = true): Part[] => {
-  return [[rect(x, y0, x + w, y1)]];
+// Vertical stem with real serifs — a bold newspaper serif face: the stem
+// is a thick even bar with flat serif slabs at its ends (3 units out each
+// side, 4 units tall). At small sizes the slabs are sub-pixel, so labels
+// still read as clean sans; at headline/date sizes they read as serifs.
+const stem = (x: number, y0: number, y1: number, w: number, top = true, bot = true): Part[] => {
+  const parts: Part[] = [[rect(x, y0, x + w, y1)]];
+  if (top) parts.push([rect(x - 3, y1 - 4, x + w + 3, y1)]);
+  if (bot) parts.push([rect(x - 3, y0, x + w + 3, y0 + 4)]);
+  return parts;
 };
 const FONT: Record<string, OGlyph> = {
   "0": [60, [bowl(28, 35, 20, 32, 7)]],
@@ -353,12 +358,12 @@ function fillPart(contours: [number, number][][], c: RGB): void {
   }
 }
 
-function drawGlyph(ch: string, bx: number, by: number, size: number, color: RGB, _weight: number): number {
+function drawGlyph(ch: string, bx: number, by: number, size: number, color: RGB, _weight: number, slant = 0): number {
   const g = FONT[ch];
   if (!g) return size * 0.4;
   const s = size / 70;
   for (const part of g[1]) {
-    const scr: [number, number][][] = part.map((ctr) => ctr.map(([x, y]): [number, number] => [bx + x * s, by - y * s]));
+    const scr: [number, number][][] = part.map((ctr) => ctr.map(([x, y]): [number, number] => [bx + (x + y * slant) * s, by - y * s]));
     fillPart(scr, color);
   }
   return g[0] * s;
@@ -372,22 +377,23 @@ function textWidth(s: string, size: number, ls = 0): number {
   }
   return w - ls;
 }
-type TextOpts = { weight?: number; ls?: number; align?: "left" | "center" | "right" };
+type TextOpts = { weight?: number; ls?: number; align?: "left" | "center" | "right"; italic?: boolean };
 function drawText(s: string, x: number, y: number, size: number, color: RGB, opts: TextOpts = {}): void {
   const ls = opts.ls ?? 0;
   const weight = opts.weight ?? 5;
+  const slant = opts.italic ? 0.16 : 0;
   const w = textWidth(s, size, ls);
   let bx = x;
   if (opts.align === "center") bx = x - w / 2;
   if (opts.align === "right") bx = x - w;
   for (const ch of s) {
-    const adv = drawGlyph(ch, bx, y, size, color, weight);
+    const adv = drawGlyph(ch, bx, y, size, color, weight, slant);
     if (weight >= 7) {
       // Bold: draw the same glyph twice more, shifted a hair left and right.
       // Even stems get ~25% thicker; counters stay open; advance unchanged.
       const off = (size / 70) * 0.9;
-      drawGlyph(ch, bx - off, y, size, color, weight);
-      drawGlyph(ch, bx + off, y, size, color, weight);
+      drawGlyph(ch, bx - off, y, size, color, weight, slant);
+      drawGlyph(ch, bx + off, y, size, color, weight, slant);
     }
     bx += adv + ls;
   }
@@ -549,31 +555,39 @@ function dashed(x0: number, y0: number, x1: number, y1: number, c: RGB): void {
 function drawGulf(x: number, y: number, w: number, h: number): void {
   fillRect(x, y, w, h, hex("#16233d"));
   // Stars
-  for (const [sx, sy] of [[30, 18], [90, 10], [150, 22], [210, 12], [270, 20], [120, 8]] as [number, number][]) disc(x + sx, y + sy, 1.5, WHITE);
+  for (const [sx, sy] of [[30, 18], [90, 10], [150, 22], [210, 12], [270, 20], [120, 8], [250, 30], [180, 6], [60, 30], [300, 8]] as [number, number][]) disc(x + sx, y + sy, 1.5, WHITE);
+  // Moon over the Gulf
+  disc(x + 272, y + 14, 8, GOLD);
+  disc(x + 269, y + 12, 7, hex("#16233d"));
   // Airbase: white dome + base + lit doors
   circle(x + 195, y + 80, 24, WHITE);
   fillRect(x + 171, y + 80, 48, 24, hex("#16233d"));
   fillRect(x + 150, y + 80, 90, 8, hex("#c9d4e6"));
   fillRect(x + 184, y + 64, 5, 16, hex("#16233d"));
   fillRect(x + 200, y + 64, 5, 16, hex("#16233d"));
+  // Second hangar (small dome) at the left + radar sweep from the main dome
+  circle(x + 58, y + 88, 12, hex("#c9d4e6"));
+  fillRect(x + 46, y + 88, 24, 10, hex("#c9d4e6"));
+  line(x + 195, y + 78, x + 232, y + 48, 2, GREEN);
+  disc(x + 232, y + 48, 2, GREEN);
   // Drone flight paths (dashed red) from Qeshm (top-left) to the base
   dashed(x + 20, y + 40, x + 178, y + 66, RED);
   dashed(x + 40, y + 26, x + 208, y + 60, RED);
   dashed(x + 60, y + 52, x + 198, y + 70, RED);
   // Drones: small white crosses with dark bodies
-  for (const [dx, dy] of [[96, 52], [128, 42], [150, 62]] as [number, number][]) {
+  for (const [dx, dy] of [[96, 52], [128, 42], [150, 62], [180, 34], [210, 48]] as [number, number][]) {
     line(x + dx - 5, y + dy, x + dx + 5, y + dy, 2, WHITE);
     line(x + dx, y + dy - 4, x + dx, y + dy + 4, 2, WHITE);
     disc(x + dx, y + dy, 2, hex("#16233d"));
   }
   // Interception bursts where the paths end
-  for (const [bx, by] of [[178, 66], [208, 60]] as [number, number][]) {
+  for (const [bx, by] of [[178, 66], [208, 60], [198, 70]] as [number, number][]) {
     disc(x + bx, y + by, 4, GOLD);
     disc(x + bx, y + by, 2, WHITE);
   }
   drawText("QESHM", x + 38, y + 18, 10, WHITE, { weight: 6, ls: 1 });
   drawText("KUWAIT", x + 252, y + 40, 10, WHITE, { weight: 6, ls: 1 });
-  drawText("BAHRAIN", x + 246, y + 96, 10, WHITE, { weight: 6, ls: 1 });
+  drawText("BAHRAIN", x + 246, y + 84, 10, WHITE, { weight: 6, ls: 1 });
   fillRect(x, y + h - 22, w, 22, RED);
   drawText("ALL INTERCEPTED", x + w / 2, y + h - 7, 12, WHITE, { align: "center", weight: 7, ls: 2 });
 }
@@ -583,12 +597,17 @@ function drawApec(x: number, y: number, w: number, h: number): void {
   fillRect(x, y + 95, w, h - 95, hex("#d98a4b"));
   // Sun over the skyline
   disc(x + 272, y + 34, 13, hex("#f2c94c"));
+  // Clouds drifting over the skyline
+  disc(x + 40, y + 14, 7, WHITE);
+  disc(x + 48, y + 16, 6, WHITE);
+  disc(x + 180, y + 12, 6, WHITE);
+  disc(x + 120, y + 8, 5, WHITE);
   const towers: [number, number, number][] = [
     [0, 95, 26], [30, 80, 22], [56, 100, 30], [90, 70, 20], [114, 88, 26], [144, 75, 18],
     [166, 98, 28], [198, 82, 24], [226, 68, 20], [250, 92, 26], [280, 78, 32],
   ];
   for (const [tx, ty, tw] of towers) fillRect(x + tx, y + ty, tw, h - ty, hex("#1b1813"));
-  for (const [wx, wy] of [[36, 86], [96, 76], [150, 81], [204, 88], [256, 98], [286, 84]] as [number, number][]) fillRect(x + wx, y + wy, 4, 5, hex("#f2c94c"));
+  for (const [wx, wy] of [[36, 86], [96, 76], [150, 81], [204, 88], [256, 98], [286, 84], [60, 104], [120, 92], [172, 102], [232, 74], [262, 96], [10, 100]] as [number, number][]) fillRect(x + wx, y + wy, 4, 5, hex("#f2c94c"));
   const flag = (fx: number, cols: RGB[]) => {
     line(x + fx, y + 28, x + fx, y + 62, 2, WHITE);
     for (let i = 0; i < 3; i++) fillRect(x + fx + 2, y + 30 + i * 6, 26, 6, cols[i]);
@@ -605,6 +624,16 @@ function drawApec(x: number, y: number, w: number, h: number): void {
   fillPoly([[x + 100, py], [x + 112, py - 14], [x + 120, py - 14], [x + 114, py]], WHITE);
   fillPoly([[x + 144, py + 8], [x + 158, py + 20], [x + 166, py + 20], [x + 156, py + 8]], WHITE);
   for (let i = 0; i < 6; i++) fillRect(x + 116 + i * 11, py + 2, 6, 3, hex("#2b3a55"));
+  // Contrail behind the tail + a distant second plane near the sun
+  dashed(x + 96, y + 58, x + 12, y + 48, WHITE);
+  fillPoly([[x + 238, y + 20], [x + 256, y + 20], [x + 258, y + 22], [x + 256, y + 24], [x + 238, y + 24]], WHITE);
+  fillPoly([[x + 244, y + 20], [x + 248, y + 16], [x + 250, y + 16], [x + 248, y + 20]], WHITE);
+  // Welcoming party on the tarmac + red carpet (right of the caption)
+  fillRect(x + 215, y + 108, 62, 4, RED);
+  for (const px of [222, 232, 242, 252, 262]) {
+    disc(x + px, y + 99, 2, hex("#1b1813"));
+    fillRect(x + px - 2, y + 101, 4, 7, hex("#1b1813"));
+  }
   drawText("SHENZHEN  •  21 ECONOMIES", x + 10, y + h - 8, 11, WHITE, { weight: 7, ls: 1 });
 }
 function drawKerch(x: number, y: number, w: number, h: number): void {
@@ -617,6 +646,13 @@ function drawKerch(x: number, y: number, w: number, h: number): void {
   fillRect(x + 230, y + 8, 6, 44, deck);
   line(x + 66, y + 12, x + 118, y + 48, 2, deck);
   line(x + 230, y + 12, x + 196, y + 48, 2, deck);
+  line(x + 66, y + 20, x + 90, y + 48, 2, deck);
+  line(x + 230, y + 20, x + 252, y + 48, 2, deck);
+  // Birds over the strait
+  line(x + 20, y + 20, x + 24, y + 24, 2, INK);
+  line(x + 24, y + 24, x + 28, y + 20, 2, INK);
+  line(x + 296, y + 30, x + 300, y + 34, 2, INK);
+  line(x + 300, y + 34, x + 304, y + 30, 2, INK);
   // Intact deck (left) + rail span (right)
   fillRect(x, y + 48, 118, 8, deck);
   fillRect(x + 196, y + 48, w - 196, 8, deck);
@@ -637,8 +673,15 @@ function drawKerch(x: number, y: number, w: number, h: number): void {
   // Red X over the gap
   line(x + 148, y + 44, x + 166, y + 62, 4, RED);
   line(x + 166, y + 44, x + 148, y + 62, 4, RED);
-  // Waves
-  for (const [wx, wy] of [[40, 92], [120, 108], [220, 96], [280, 116], [80, 122], [180, 118]] as [number, number][]) {
+  // Debris floating near the collapsed span + a marker buoy
+  fillRect(x + 205, y + 70, 10, 3, deck);
+  fillRect(x + 230, y + 82, 8, 3, deck);
+  fillRect(x + 250, y + 72, 6, 3, deck);
+  disc(x + 282, y + 100, 3, hex("#e8833a"));
+  line(x + 282, y + 100, x + 282, y + 92, 2, hex("#e8833a"));
+  drawText("KERCH STRAIT", x + 8, y + 108, 9, WHITE, { weight: 6, ls: 1 });
+  // Waves (kept inside the 112px panel)
+  for (const [wx, wy] of [[40, 88], [120, 104], [220, 92], [280, 106], [100, 100], [180, 108], [150, 96], [60, 94]] as [number, number][]) {
     line(x + wx, y + wy, x + wx + 18, y + wy, 2, WHITE);
   }
 }
@@ -663,6 +706,12 @@ function artDrones(x: number, y: number, w: number, h: number): void {
   // One interception burst
   disc(x + 200, y + 10, 4, GOLD);
   disc(x + 200, y + 10, 2, WHITE);
+  // Lit windows in the city + a ground line + a fourth drone on its path
+  for (const [wx, wy] of [[12, 18], [42, 14], [64, 20], [96, 16], [120, 18], [150, 15], [176, 19], [210, 17]] as [number, number][]) fillRect(x + wx, y + wy, 2, 2, GOLD);
+  fillRect(x, y + 23, w, 2, hex("#0e1830"));
+  dashed(x + 80, y + 10, x + 200, y + 20, hex("#e8b4b0"));
+  disc(x + 200, y + 20, 3, WHITE);
+  line(x + 194, y + 20, x + 206, y + 20, 2, WHITE);
   cardStrip(x, y, w, h, RED, "141 FIRED • 126 DOWNED");
 }
 function artFed(x: number, y: number, w: number, h: number): void {
@@ -680,6 +729,13 @@ function artFed(x: number, y: number, w: number, h: number): void {
   line(x + 180, y + 8, x + 210, y + 18, 3, RED);
   line(x + 210, y + 18, x + 202, y + 18, 3, RED);
   line(x + 210, y + 18, x + 210, y + 10, 3, RED);
+  // Steps below the bank + a small tree at the left
+  fillRect(x + 44, y + 24, 60, 2, hex("#8a8378"));
+  fillRect(x + 38, y + 28, 72, 2, hex("#8a8378"));
+  fillRect(x + 20, y + 26, 3, 8, hex("#5a4632"));
+  disc(x + 21, y + 22, 7, GREEN);
+  disc(x + 14, y + 26, 5, GREEN);
+  disc(x + 28, y + 26, 5, GREEN);
   cardStrip(x, y, w, h, GREEN, "DOW -561");
 }
 function artEu(x: number, y: number, w: number, h: number): void {
@@ -692,6 +748,11 @@ function artEu(x: number, y: number, w: number, h: number): void {
   // Small Ukraine flag at the right
   fillRect(x + 196, y + 6, 26, 5, hex("#2b6cb0"));
   fillRect(x + 196, y + 11, 26, 5, GOLD);
+  // Gold underline under the figure + the year + a small EU flag at the right
+  fillRect(x + 62, y + 26, 90, 2, GOLD);
+  drawText("2027", x + 160, y + 22, 12, WHITE, { weight: 7 });
+  fillRect(x + 196, y + 24, 26, 4, BLUE);
+  for (let i = 0; i < 6; i++) disc(x + 198 + i * 4, y + 26, 1, GOLD);
   cardStrip(x, y, w, h, GOLD, "FOR KYIV • 2027", INK);
 }
 function artJeffries(x: number, y: number, w: number, h: number): void {
@@ -708,6 +769,10 @@ function artJeffries(x: number, y: number, w: number, h: number): void {
   for (let i = 0; i < 23; i++) disc(x + 44 + (i % 8) * 7, y + 7 + Math.floor(i / 8) * 6, 2, GREEN);
   disc(x + 44 + 7 * 7, y + 19, 2, hex("#8a8378"));
   drawText("251-11", x + 110, y + 20, 16, NAVY, { weight: 7 });
+  // The 11 dissenting votes (grey dots) + a podium line + ELECTED tag
+  for (let i = 0; i < 11; i++) disc(x + 44 + i * 7, y + 27, 2, hex("#8a8378"));
+  fillRect(x + 44, y + 32, 120, 2, NAVY);
+  drawText("ELECTED", x + 180, y + 32, 10, GREEN, { weight: 7, ls: 1 });
   cardStrip(x, y, w, h, NAVY, "251-11 • CAUCUS VOTE");
 }
 function artQuad(x: number, y: number, w: number, h: number): void {
@@ -730,6 +795,8 @@ function artQuad(x: number, y: number, w: number, h: number): void {
       disc(fx + 22, y + 20, 2, WHITE);
     }
   }
+  // Manila skyline silhouette along the bottom
+  for (const [bx, bw, bh] of [[10, 18, 6], [34, 14, 9], [54, 22, 5], [82, 16, 8], [104, 20, 6], [130, 14, 9], [150, 24, 5], [180, 18, 7], [204, 16, 8]] as [number, number, number][]) fillRect(x + bx, y + 37 - bh, bw, bh, hex("#8a8378"));
   cardStrip(x, y, w, h, BLUE, "MANILA • 4 LEADERS");
 }
 function artPeltola(x: number, y: number, w: number, h: number): void {
@@ -744,6 +811,12 @@ function artPeltola(x: number, y: number, w: number, h: number): void {
   // Small red/blue vote bars
   fillRect(x + 176, y + 8, 22, 4, RED);
   fillRect(x + 176, y + 14, 18, 4, WHITE);
+  // Senate split bars: 56 blue vs 44 red (schematic) + a second star
+  fillRect(x + 62, y + 25, 80, 4, BLUE);
+  fillRect(x + 62, y + 30, 62, 4, RED);
+  drawText("56", x + 148, y + 29, 10, BLUE, { weight: 7 });
+  drawText("44", x + 130, y + 34, 10, RED, { weight: 7 });
+  disc(x + 200, y + 28, 2, GOLD);
   cardStrip(x, y, w, h, RED, "ALASKA FLIPS");
 }
 function artGaza(x: number, y: number, w: number, h: number): void {
@@ -757,6 +830,15 @@ function artGaza(x: number, y: number, w: number, h: number): void {
   fillRect(x + 88, y + 8, 56, 7, INK);
   fillRect(x + 88, y + 15, 56, 3, INK);
   for (const wx of [94, 108, 122, 136]) disc(x + wx, y + 19, 2.5, INK);
+  // Second tank (smaller, below the line) + dust + buildings at the right
+  fillRect(x + 16, y + 24, 16, 4, INK);
+  fillRect(x + 10, y + 28, 28, 5, INK);
+  fillRect(x + 10, y + 33, 28, 2, INK);
+  for (const wx of [14, 24, 34]) disc(x + wx, y + 35, 2, INK);
+  disc(x + 158, y + 20, 4, hex("#b8a888"));
+  disc(x + 168, y + 22, 3, hex("#b8a888"));
+  fillRect(x + 180, y + 28, 20, 9, hex("#8a8378"));
+  fillRect(x + 206, y + 30, 14, 7, hex("#8a8378"));
   cardStrip(x, y, w, h, RED, "ACROSS THE YELLOW LINE");
 }
 function artEbola(x: number, y: number, w: number, h: number): void {
@@ -770,6 +852,16 @@ function artEbola(x: number, y: number, w: number, h: number): void {
     disc(x + vx, y + vy, 5, hex("#2e1a4a"));
     disc(x + vx, y + vy, 2, hex("#d9c9f2"));
   }
+  // A fourth, smaller virion + a red-cross medical marker
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    const len = i % 2 === 0 ? 7 : 4;
+    line(x + 90, y + 28, x + 90 + Math.cos(a) * len, y + 28 + Math.sin(a) * len, 2, hex("#d9c9f2"));
+  }
+  disc(x + 90, y + 28, 4, hex("#2e1a4a"));
+  disc(x + 90, y + 28, 2, hex("#d9c9f2"));
+  fillRect(x + 210, y + 26, 12, 4, WHITE);
+  fillRect(x + 214, y + 22, 4, 12, WHITE);
   cardStrip(x, y, w, h, hex("#2e1a4a"), "11,504 CASES");
 }
 function artMeasles(x: number, y: number, w: number, h: number): void {
@@ -779,6 +871,9 @@ function artMeasles(x: number, y: number, w: number, h: number): void {
   line(x + 30, y + 20, x + 200, y + 6, 3, RED);
   line(x + 200, y + 6, x + 190, y + 6, 3, RED);
   line(x + 200, y + 6, x + 200, y + 14, 3, RED);
+  // A fourth, taller bar (2026 is the record year) + the 26-year label
+  fillRect(x + 200, y + 27 - 24, 24, 24, WHITE);
+  drawText("26 YRS", x + 200, y + 36, 8, WHITE, { weight: 7, ls: 1 });
   cardStrip(x, y, w, h, hex("#0b4f49"), "5,412 CASES");
 }
 function artAn12(x: number, y: number, w: number, h: number): void {
@@ -791,6 +886,13 @@ function artAn12(x: number, y: number, w: number, h: number): void {
   // Crash marker: red X at the right
   line(x + 196, y + 6, x + 208, y + 18, 3, RED);
   line(x + 208, y + 6, x + 196, y + 18, 3, RED);
+  // Mountains along the bottom + smoke at the crash marker + the place label
+  fillPoly([[x + 10, y + 37], [x + 30, y + 26], [x + 50, y + 37]], hex("#5a6a7a"));
+  fillPoly([[x + 40, y + 37], [x + 70, y + 24], [x + 100, y + 37]], hex("#5a6a7a"));
+  fillPoly([[x + 120, y + 37], [x + 150, y + 28], [x + 180, y + 37]], hex("#5a6a7a"));
+  disc(x + 202, y + 22, 5, hex("#dfe7ea"));
+  disc(x + 210, y + 26, 4, hex("#dfe7ea"));
+  drawText("KEMEROVO", x + 10, y + 36, 8, WHITE, { weight: 7, ls: 1 });
   cardStrip(x, y, w, h, INK, "19 ABOARD");
 }
 function artXavier(x: number, y: number, w: number, h: number): void {
@@ -804,6 +906,14 @@ function artXavier(x: number, y: number, w: number, h: number): void {
   line(x + 150, y + 18, x + 200, y + 8, 2, WHITE);
   disc(x + 60, y + 18, 2, GOLD);
   disc(x + 180, y + 16, 2, GOLD);
+  // A second, smaller spiral + more rain bands + island dots
+  ring(x + 182, y + 28, 7, 2, WHITE);
+  ring(x + 184, y + 29, 4, 2, WHITE);
+  disc(x + 183, y + 28, 2, GOLD);
+  line(x + 20, y + 30, x + 70, y + 34, 2, WHITE);
+  line(x + 140, y + 32, x + 190, y + 26, 2, WHITE);
+  disc(x + 100, y + 30, 2, GOLD);
+  disc(x + 210, y + 34, 2, GOLD);
   cardStrip(x, y, w, h, hex("#083038"), "220 KM/H • CAT 5");
 }
 function artCop(x: number, y: number, w: number, h: number): void {
@@ -820,6 +930,13 @@ function artCop(x: number, y: number, w: number, h: number): void {
   disc(x + 150, y + 12, 8, GREEN);
   line(x + 145, y + 12, x + 149, y + 16, 2, WHITE);
   line(x + 149, y + 16, x + 156, y + 7, 2, WHITE);
+  // A second document (the draft) + a small globe at the right + the COP label
+  fillRect(x + 170, y + 24, 44, 12, WHITE);
+  fillRect(x + 175, y + 27, 34, 2, hex("#8a8378"));
+  fillRect(x + 175, y + 31, 24, 2, hex("#8a8378"));
+  disc(x + 200, y + 12, 6, BLUE);
+  disc(x + 198, y + 10, 2, GREEN);
+  drawText("COP31", x + 130, y + 34, 10, GREEN, { weight: 7, ls: 1 });
   cardStrip(x, y, w, h, GREEN, "PHASE-OUT?");
 }
 function drawCardArt(n: number, x: number, y: number, w: number, h: number): void {
@@ -865,11 +982,11 @@ function inPoly(lon: number, lat: number, poly: [number, number][]): boolean {
   return inside;
 }
 function drawWorldMap(x: number, y: number, w: number, h: number): void {
-  drawText("WHERE IT HAPPENED", x, y + 18, 12, INK, { weight: 6, ls: 1 });
+  drawText("WHERE IT HAPPENED", x, y + 16, 12, INK, { weight: 6, ls: 1 });
   const mx = x;
-  const my = y + 24;
+  const my = y + 22;
   const mw = w;
-  const mh = h - 24;
+  const mh = h - 46;
   fillRect(mx, my, mw, mh, hex("#dfe7ea"));
   const proj = (lon: number, lat: number): [number, number] => [
     mx + ((lon + 180) / 360) * mw,
@@ -889,77 +1006,103 @@ function drawWorldMap(x: number, y: number, w: number, h: number): void {
     circle(dx, dy, 7, RED);
     drawText(String(n), dx, dy + 3, 8, WHITE, { align: "center", weight: 7 });
   }
+  // Legend: region colors (match the region bar)
+  const leg: [string, RGB, number, number][] = [
+    ["ASIA", GOLD, 0, 0], ["EUROPE", BLUE, 98, 0], ["AMERICAS", GREEN, 196, 0], ["MIDDLE EAST", RED, 294, 0],
+    ["AFRICA", ORANGE, 0, 11], ["OCEANIA", TEAL, 98, 11], ["WORLD", GREY, 196, 11],
+  ];
+  for (const [name, col, lx, ly] of leg) {
+    disc(mx + lx + 4, my + mh + 8 + ly, 3, col);
+    drawText(name, mx + lx + 11, my + mh + 11 + ly, 9, INK, { weight: 6 });
+  }
 }
 
 // ---------------- poster ----------------
 function drawPoster(): void {
   fillRect(0, 0, W, H, PAPER);
-  // header
-  fillRect(0, 0, W, 148, NAVY);
-  drawText("WORLD EDITION", 28, 34, 14, WHITE, { weight: 6, ls: 3 });
-  drawText("ONE DAY • ONE PAGE", 996, 34, 14, WHITE, { weight: 6, ls: 3, align: "right" });
-  const dateSize = fitSize("WEDNESDAY 18 NOVEMBER 2026", 968, 50);
-  drawText("WEDNESDAY 18 NOVEMBER 2026", 28, 88, dateSize, WHITE, { weight: 7 });
-  fillRect(28, 100, 968, 3, GOLD);
-  drawText("39 STORIES • 7 REGIONS • 15 DRAWN", 28, 120, 13, WHITE, { weight: 7 });
-  drawText(REGION_BAR, 996, 120, 11, hex("#c9d4e6"), { align: "right", weight: 5 });
-  const nsz = fitSize(NUMBERS_LINE, 968, 10.5);
-  drawText(NUMBERS_LINE, 28, 142, nsz, hex("#c9d4e6"), { weight: 5 });
-  // leads
+  // header: dark navy, calendar badge left, gold caps right, big serif date, italic subline
+  fillRect(0, 0, W, 118, NAVY);
+  fillRect(24, 12, 72, 96, WHITE);
+  fillRect(24, 12, 72, 20, RED);
+  drawText("NOV", 60, 28, 12, WHITE, { align: "center", weight: 7, ls: 1 });
+  drawText("18", 60, 76, 40, NAVY, { align: "center", weight: 7 });
+  drawText("WED · 2026", 60, 98, 8, NAVY, { align: "center", weight: 6 });
+  drawText("THE DAY IN WORLD NEWS", 110, 20, 13, GOLD, { weight: 7, ls: 2 });
+  drawText("39 STORIES • 7 REGIONS • 15 DRAWN • ONE PAGE", 996, 20, 11, GOLD, { align: "right", weight: 6, ls: 1 });
+  const dateSize = fitSize("Wednesday 18 November 2026", 886, 46);
+  drawText("Wednesday 18 November 2026", 110, 82, dateSize, WHITE, { weight: 7 });
+  drawText("Everything on this page happened, or was first reported, on Wednesday 18 November 2026.", 110, 106, 13, hex("#c9d4e6"), { weight: 5, italic: true });
+  // region bar: colored segments, one per region, widths by story count (total 39)
+  const regions: [string, number, RGB][] = [
+    ["ASIA", 7, GOLD], ["EUROPE", 8, BLUE], ["AMERICAS", 10, GREEN], ["MIDDLE EAST", 6, RED],
+    ["AFRICA", 3, ORANGE], ["OCEANIA", 2, TEAL], ["WORLD", 3, GREY],
+  ];
+  let rx = 28;
+  for (const [name, n, col] of regions) {
+    const rw = Math.round((968 * n) / 39);
+    fillRect(rx, 124, rw, 14, col);
+    drawText(name + " " + n, rx + rw / 2, 135, 7, WHITE, { align: "center", weight: 7 });
+    rx += rw;
+  }
+  // numbers line
+  const nsz = fitSize(NUMBERS_LINE, 968, 11);
+  drawText(NUMBERS_LINE, 28, 152, nsz, INK, { weight: 6 });
+  // leads: tall art + kicker + bold serif headline + serif deck
   const leadX = [28, 356, 684];
+  const leadCol = [RED, BLUE, BLUE];
   LEADS.forEach((lead, i) => {
     const x = leadX[i];
-    if (lead.art === 1) drawGulf(x, 156, 312, 128);
-    if (lead.art === 2) drawApec(x, 156, 312, 128);
-    if (lead.art === 3) drawKerch(x, 156, 312, 128);
-    badge(x + 16, 172, lead.num);
-    drawText(lead.kicker, x, 298, 13, RED, { weight: 6, ls: 2 });
-    drawText(lead.src, x + 312, 298, 10, GREY, { align: "right", weight: 6 });
-    const hl = drawParaFit(lead.head, x, 320, 312, 19, 21, INK, { weight: 7 }, 2, 16);
-    drawParaFit(lead.deck, x, 320 + hl * 21 + 4, 312, 11.5, 13.5, INK, { weight: 5 }, 2, 10);
+    if (lead.art === 1) drawGulf(x, 160, 312, 112);
+    if (lead.art === 2) drawApec(x, 160, 312, 112);
+    if (lead.art === 3) drawKerch(x, 160, 312, 112);
+    badge(x + 16, 176, lead.num);
+    drawText(lead.kicker, x, 290, 13, leadCol[i], { weight: 7, ls: 2 });
+    drawText(lead.src, x + 312, 290, 10, GREY, { align: "right", weight: 6 });
+    const hl = drawParaFit(lead.head, x, 304, 312, 19, 21, INK, { weight: 7 }, 2, 16);
+    drawParaFit(lead.deck, x, 304 + hl * 21 + 4, 312, 11.5, 13.5, INK, { weight: 5 }, 2, 10);
   });
-  fillRect(28, 394, 968, 2, GREY);
-  // cards: 3 rows x 4 columns, each with a small illustration
+  fillRect(28, 386, 968, 2, GREY);
+  // cards: 3 rows x 4 columns, each with a real illustration panel on top
   const colX = [28, 273, 518, 763];
-  const rowY = [400, 526, 652];
+  const rowY = [392, 516, 640];
   for (let r = 0; r < 3; r++) {
     for (let c = 0; c < 4; c++) {
       const it = GRID[r * 4 + c];
       const x = colX[c];
       const y = rowY[r];
-      drawCardArt(it.art, x, y, 233, 36);
-      circle(x + 10, y + 48, 9, RED);
-      drawText(String(it.num), x + 10, y + 52, 12, WHITE, { align: "center", weight: 7 });
-      drawText(it.cat, x + 24, y + 52, 13, it.color, { weight: 7 });
-      drawText(it.src, x + 233, y + 52, 9, GREY, { align: "right", weight: 6 });
-      const hl = drawParaFit(it.head, x, y + 68, 233, 14, 14, INK, { weight: 7 }, 2, 12);
-      drawParaFit(it.deck, x, y + 68 + hl * 14 + 3, 233, 10.5, 11.5, INK, { weight: 5 }, 2, 9.5);
+      drawCardArt(it.art, x, y, 233, 50);
+      circle(x + 10, y + 62, 9, RED);
+      drawText(String(it.num), x + 10, y + 66, 12, WHITE, { align: "center", weight: 7 });
+      drawText(it.cat, x + 24, y + 66, 12, it.color, { weight: 7 });
+      drawText(it.src, x + 233, y + 66, 9, GREY, { align: "right", weight: 6 });
+      const hl = drawParaFit(it.head, x, y + 80, 233, 13.5, 14, INK, { weight: 7 }, 2, 12);
+      drawParaFit(it.deck, x, y + 80 + hl * 14 + 2, 233, 10, 10.5, INK, { weight: 5 }, 2, 9);
     }
   }
-  fillRect(28, 782, 968, 2, GREY);
+  fillRect(28, 770, 968, 2, GREY);
   // map + also
-  drawWorldMap(28, 788, 392, 179);
-  drawText("ALSO ON WEDNESDAY", 436, 806, 13, INK, { weight: 6, ls: 2 });
+  drawWorldMap(28, 776, 392, 170);
+  drawText("ALSO ON WEDNESDAY", 436, 794, 13, INK, { weight: 6, ls: 2 });
   for (let i = 0; i < 24; i++) {
     const col = i < 12 ? 0 : 1;
     const row = i % 12;
     const ax = 436 + col * 280;
-    const ay = 818 + row * 13.5;
-    drawText("•", ax, ay, 10, RED, { weight: 6 });
-    const sz = fitSize(ALSO[i], 262, 10.5);
-    drawText(ALSO[i], ax + 12, ay, sz, INK, { weight: 5 });
+    const ay = 808 + row * 12.5;
+    drawText(String(16 + i), ax + 16, ay, 10, RED, { align: "right", weight: 7 });
+    const sz = fitSize(ALSO[i], 256, 10.5);
+    drawText(ALSO[i], ax + 22, ay, sz, INK, { weight: 5 });
   }
-  // date check strip
-  fillRect(28, 973, 968, 2, RED);
-  fillRect(28, 1012, 968, 2, RED);
-  fillRect(28, 973, 2, 41, RED);
-  fillRect(994, 973, 2, 41, RED);
-  drawText(DATECHECK_1, 40, 986, 10, RED, { weight: 7 });
-  drawText(DATECHECK_2, 40, 998, 9.5, INK, { weight: 5 });
-  drawText(DATECHECK_3, 40, 1009, 9.5, INK, { weight: 5 });
+  // date check box (full red frame)
+  fillRect(28, 962, 968, 2, RED);
+  fillRect(28, 1002, 968, 2, RED);
+  fillRect(28, 962, 2, 42, RED);
+  fillRect(994, 962, 2, 42, RED);
+  drawText(DATECHECK_1, 40, 976, 10, RED, { weight: 7 });
+  drawText(DATECHECK_2, 40, 988, 9.5, INK, { weight: 5 });
+  drawText(DATECHECK_3, 40, 999, 9.5, INK, { weight: 5 });
   // footer
   const fs = fitSize(SOURCES, 968, 8.5);
-  drawText(SOURCES, 28, 1019, fs, GREY, { weight: 5 });
+  drawText(SOURCES, 28, 1018, fs, GREY, { weight: 5 });
 }
 
 // ---------------- main ----------------
