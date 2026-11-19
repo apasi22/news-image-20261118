@@ -315,6 +315,7 @@ const FONT: Record<string, OGlyph> = {
   "%": [64, [[diag(14, 68, 42, 2, 6)], bowl(17, 56, 7, 7, 4), bowl(39, 14, 7, 7, 4)]],
   "/": [34, [[diag(10, 0, 26, 70, 6)]]],
   $: [60, [[arcBand(28, 52, 16, 15, 25, 270, 7)], [arcBand(28, 20, 16, 15, 200, 450, 7)], ...stem(25, -6, 76, 6, false, false)]],
+  "€": [60, [[arcBand(28, 35, 20, 33, 45, 315, 7)], [rect(6, 28, 50, 35)], [rect(6, 42, 50, 49)]]],
   "+": [60, [[rect(24, 14, 30, 56)], [rect(10, 32, 46, 38)]]],
   "=": [60, [[rect(10, 37, 46, 43)], [rect(10, 17, 46, 23)]]],
   "•": [28, [[ell(26, 30, 5, 5)]]],
@@ -427,82 +428,101 @@ function drawDigitTest(): void {
   fillRect(0, 0, W, H, PAPER);
   drawText("DIGIT TEST", 28, 70, 44, INK, { weight: 7, ls: 2 });
   drawText("18 NOVEMBER 2026", 28, 130, 30, RED, { weight: 6, ls: 1 });
-  drawText("WEDNESDAY 18 NOVEMBER 2026", 28, 200, 62, INK, { weight: 7 });
+  drawText("WEDNESDAY 18 NOVEMBER 2026", 28, 200, 44, INK, { weight: 7 });
   const digits = "0123456789";
   let x = 28;
   for (const d of digits) {
     drawText(d, x, 330, 110, INK, { weight: 8 });
     x += 100;
   }
-  drawText("144,302  50.12%  11,504  5,630  5,412", 28, 430, 44, INK, { weight: 6 });
-  drawText("27.5 years  910 hPa  220 km/h  57-34  $115.8B", 28, 500, 40, INK, { weight: 6 });
+  drawText("144,302  50.12%  11,504  5,630  5,412", 28, 430, 34, INK, { weight: 6 });
+  drawText("27.5 years  910 hPa  220 km/h  57-34  $115.8B", 28, 500, 32, INK, { weight: 6 });
   drawText("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 28, 600, 40, INK, { weight: 6 });
   drawText("abcdefghijklmnopqrstuvwxyz", 28, 660, 40, INK, { weight: 6 });
   drawText("The quick brown fox jumps over the lazy dog. 1234567890", 28, 730, 30, INK, { weight: 5 });
   drawText("Gulf drones hit U.S. bases; all intercepted.", 28, 790, 30, INK, { weight: 5 });
+  drawText("€45bn  $81.3bn  251-11  56-44  144,302", 28, 860, 30, INK, { weight: 6 });
 }
 
 // ---------------- content (all facts verified against primary sources) ----------------
-type Lead = { num: number; kicker: string; head: string; deck: string; art: number };
+type Lead = { num: number; kicker: string; head: string; deck: string; art: number; src: string };
 const LEADS: Lead[] = [
   {
     num: 1,
     kicker: "THE GULF",
     head: "Iran drones hit U.S. bases in Gulf",
-    deck: "Tehran fires drones at Ali Al Salem in Kuwait and Sheikh Isa in Bahrain, a day after U.S. jets hit Qeshm. All are intercepted.",
+    deck: "Iran fires drones at U.S. bases in Kuwait and Bahrain; all intercepted.",
     art: 1,
+    src: "BBC",
   },
   {
     num: 2,
     kicker: "SHENZHEN",
     head: "Xi and Putin meet as APEC opens",
-    deck: "Xi opens the 33rd APEC leaders' meeting of 21 economies and urges free trade, a day before the first Trump-Xi-Putin talks.",
+    deck: "Xi opens the 33rd APEC meeting of 21 economies and urges free trade.",
     art: 2,
+    src: "APEC",
   },
   {
     num: 3,
     kicker: "CRIMEA",
     head: "Kerch bridge down; rail back",
-    deck: "Ukraine's two nights of strikes drop the road span into the strait. Russia says trains run again; rebuilding may take 2 years.",
+    deck: "Strikes drop the road span; Russia says trains run again. Rebuild: 2 years.",
     art: 3,
+    src: "REUTERS",
   },
 ];
-type GridItem = { num: number; cat: string; color: RGB; head: string; deck: string };
+type GridItem = { num: number; cat: string; color: RGB; head: string; deck: string; art: number; src: string };
 const GRID: GridItem[] = [
-  { num: 4, cat: "QUAD", color: BLUE, head: "Leaders meet in Manila", deck: "Trump, Modi, Takaichi, Albanese back joint patrols and minerals deals." },
-  { num: 5, cat: "U.S. SENATE", color: BLUE, head: "Peltola flips Alaska", deck: "Peltola beats Sullivan 144,302 to 131,844; Democrats take 56-44." },
-  { num: 6, cat: "GAZA", color: RED, head: "Ceasefire near collapse", deck: "Board of Peace: both sides failing the deal; 1,600+ killed since 2025." },
-  { num: 7, cat: "EBOLA", color: PURPLE, head: "Congo toll: 11,504 cases", deck: "5,630 deaths to 16 Nov; Africa CDC: 'still out of control'." },
-  { num: 8, cat: "HEALTH", color: TEAL, head: "U.S. loses measles-free status", deck: "PAHO ends 26 years of elimination; 5,412 cases, the most since 1991." },
-  { num: 9, cat: "RUSSIA", color: INK, head: "An-12 crash kills all 19 aboard", deck: "A military An-12 falls near Kemerovo; a criminal case opens on 18 Nov." },
-  { num: 10, cat: "WEATHER", color: BLUE, head: "Cyclone Xavier hits Cook Islands", deck: "Category 5 Xavier hits the Cook Islands at 220 km/h; shelter urged." },
-  { num: 11, cat: "FLORIDA", color: ORANGE, head: "Floods shut schools", deck: "Up to 15 inches of rain in Broward; I-95 shut, emergency declared." },
-  { num: 12, cat: "JUSTICE", color: INK, head: "27.5 years for Trump plot", deck: "Merchant, 48, gets 330 months for an Iran-backed plot to kill Donald Trump." },
-  { num: 13, cat: "LATVIA", color: GREEN, head: "Kulbergs wins confidence vote", deck: "Saeima backs Kulbergs' government 57-34; 2.9 billion euros saved by 2030." },
-  { num: 14, cat: "FRANCE", color: PURPLE, head: "140,000 march in pay strike", deck: "Unions strike over pay; justice minister: 15,000 detained." },
-  { num: 15, cat: "QUAKES", color: ORANGE, head: "M6.0 shakes Papua New Guinea", deck: "M6.0 quake at 10 km depth; a 5.3 in Romania is felt in Bucharest, 2 hurt." },
-  { num: 16, cat: "SPORT", color: GREEN, head: "Dhoni retires from the IPL", deck: "Dhoni, 45, ends his playing career; CSK mentor from 2027. 278 matches." },
+  { num: 4, cat: "UKRAINE", color: BLUE, head: "Russia fires 141 drones; 126 downed", deck: "126 of 141 drones downed; a strike on Odesa kills 4.", art: 1, src: "UKR AIR FORCE" },
+  { num: 5, cat: "FED", color: GREEN, head: "Minutes point to more hikes", deck: "Almost all see more hikes; a couple eye a half-point move.", art: 2, src: "FED" },
+  { num: 6, cat: "EU", color: BLUE, head: "EU offers Kyiv a €45bn loan", deck: "€45bn loan for 2027; Kyiv repays only after Russia pays.", art: 3, src: "EU" },
+  { num: 7, cat: "CONGRESS", color: BLUE, head: "Democrats pick Jeffries for speaker", deck: "A 251-11 vote; he would be the first Black Speaker in January.", art: 4, src: "AP" },
+  { num: 8, cat: "QUAD", color: BLUE, head: "Leaders meet in Manila", deck: "Trump, Modi, Takaichi, Albanese back joint patrols.", art: 5, src: "REUTERS" },
+  { num: 9, cat: "U.S. SENATE", color: BLUE, head: "Peltola flips Alaska", deck: "Peltola beats Sullivan 144,302 to 131,844; Senate 56-44.", art: 6, src: "AP" },
+  { num: 10, cat: "GAZA", color: RED, head: "Israeli tanks cross ceasefire line", deck: "First ground push since the truce; troops enter Nuseirat, Bureij.", art: 7, src: "REUTERS" },
+  { num: 11, cat: "EBOLA", color: PURPLE, head: "Congo toll: 11,504 cases", deck: "5,630 deaths to 16 Nov; Africa CDC: 'still out of control'.", art: 8, src: "WHO" },
+  { num: 12, cat: "HEALTH", color: TEAL, head: "U.S. loses measles-free status", deck: "PAHO ends 26 years of elimination; 5,412 cases in 2026.", art: 9, src: "PAHO" },
+  { num: 13, cat: "RUSSIA", color: INK, head: "An-12 crash kills all 19 aboard", deck: "An-12 falls near Kemerovo; criminal case opens on 18 Nov.", art: 10, src: "REUTERS" },
+  { num: 14, cat: "WEATHER", color: BLUE, head: "Cyclone Xavier hits Cook Islands", deck: "Category 5 Xavier hits the Cook Islands at 220 km/h.", art: 11, src: "METSERVICE" },
+  { num: 15, cat: "CLIMATE", color: GREEN, head: "COP31 split over phase-out", deck: "Ministers split over the draft's fossil-fuel wording.", art: 12, src: "AFP" },
 ];
 const ALSO: string[] = [
   "Akvan cyclone nears India, landfall 20 Nov",
-  "Trump claims big Philippines trade deal",
   "Nvidia posts $115.8B quarter, revenue up 103%",
   "Voyager 1 passes one light-day from Earth",
   "M5.9 earthquake off the coast of Peru",
-  "Katz: IDF ready to seize more Gaza ground",
   "Quad to spend $85M on trusted AI access",
   "APEC CEO Summit draws 115 Fortune 500 firms",
-  "St. Johns River at Cocoa in major flood",
+  "St. Johns River nears its 1953 record",
   "Trump meets Marcos at the palace in Manila",
   "Kuwait's first Iranian attack in two months",
-  "Bahrain hit for the third time in five days",
-  "Quad business forum to be held in Mumbai, 2027",
-  "France: Senate takes up 2027 budget on 20 Nov",
+  "Bahrain hit a fourth time in six days",
   "Hamas rejects Board of Peace account",
   "Israel rejects Board roadmap; no pullout yet",
+  "Latvia: Kulbergs wins confidence vote 57-34",
+  "France: 140,000 march, 15,000 detained",
+  "M6.0 quake off Papua New Guinea",
+  "Dhoni retires from the IPL",
+  "Bangladesh: 535 factories shut in protests",
+  "GTA VI on sale at midnight in New Zealand",
+  "Anthropic prices record $81.3bn IPO",
+  "Alcaraz beats Medvedev in Turin",
+  "Amnesty: RSF drones killed 37 in Sudan",
+  "Ethiopia and Eritrea mass troops on border",
+  "US and Venezuela sign defence deal",
+  "UK inflation hits 3.6%, a one-year high",
 ];
 const SOURCES =
-  "Sources: Reuters, Associated Press, PAHO, WHO, CDC, USGS, MetService NZ, U.S. Dept. of Justice, CSK, NWS, AFP. Compiled from reports of 18 November 2026.";
+  "Sources: Reuters, AP, PAHO, WHO, CDC, USGS, MetService NZ, U.S. DOJ, NWS, AFP, BBC, ONS, Amnesty, AAP, ATP. All reports of 18 November 2026.";
+const REGION_BAR = "ASIA 7 • EUROPE 8 • AMERICAS 10 • MIDDLE EAST 6 • AFRICA 3 • OCEANIA 2 • WORLD 3";
+const NUMBERS_LINE =
+  "THE DAY IN NUMBERS:  141 DRONES FIRED • 126 DOWNED • €45BN FOR KYIV • 11,504 EBOLA CASES • 5,412 MEASLES CASES • 144,302 VOTES";
+const DATECHECK_1 = "DATE CHECK — EVERYTHING HERE HAPPENED, OR WAS FIRST REPORTED, ON 18 NOVEMBER 2026.";
+const DATECHECK_2 =
+  "Left out on purpose: the Kerch Bridge collapse and the U.S. strike on Qeshm (both Tue 17 Nov).";
+const DATECHECK_3 =
+  "Not yet: the Trump-Xi-Putin summit (Thu 19 Nov); Akvan's landfall (Fri 20 Nov).";
 
 // ---------------- illustrations ----------------
 function badge(x: number, y: number, n: number): void {
@@ -584,6 +604,139 @@ function drawKerch(x: number, y: number, w: number, h: number): void {
   }
 }
 
+// ---------------- card illustrations (12 small scenes) ----------------
+function cardStrip(x: number, y: number, w: number, h: number, c: RGB, t: string, tc: RGB = WHITE): void {
+  fillRect(x, y + h - 13, w, 13, c);
+  drawText(t, x + w / 2, y + h - 4, 10, tc, { align: "center", weight: 7, ls: 1 });
+}
+function artDrones(x: number, y: number, w: number, h: number): void {
+  fillRect(x, y, w, h, hex("#1d2b4a"));
+  dashed(x + 10, y + 6, x + 90, y + 22, hex("#e8b4b0"));
+  dashed(x + 30, y + 4, x + 130, y + 20, hex("#e8b4b0"));
+  dashed(x + 60, y + 8, x + 170, y + 24, hex("#e8b4b0"));
+  for (const [dx, dy] of [[90, 22], [130, 20], [170, 24]] as [number, number][]) {
+    disc(x + dx, y + dy, 3, WHITE);
+    line(x + dx - 6, y + dy, x + dx + 6, y + dy, 2, WHITE);
+  }
+  cardStrip(x, y, w, h, RED, "141 FIRED • 126 DOWNED");
+}
+function artFed(x: number, y: number, w: number, h: number): void {
+  fillRect(x, y, w, h, hex("#efe6c8"));
+  for (const [bx, bh] of [[40, 18], [90, 13], [140, 8]] as [number, number][]) fillRect(x + bx, y + 27 - bh, 26, bh, hex("#8a8378"));
+  line(x + 30, y + 8, x + 200, y + 24, 3, RED);
+  line(x + 200, y + 24, x + 186, y + 20, 3, RED);
+  line(x + 200, y + 24, x + 192, y + 12, 3, RED);
+  cardStrip(x, y, w, h, GREEN, "DOW -561");
+}
+function artEu(x: number, y: number, w: number, h: number): void {
+  fillRect(x, y, w, h, BLUE);
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2;
+    disc(x + 34 + Math.cos(a) * 10, y + 14 + Math.sin(a) * 9, 1.6, GOLD);
+  }
+  drawText("€45bn", x + 62, y + 22, 20, WHITE, { weight: 7 });
+  cardStrip(x, y, w, h, GOLD, "FOR KYIV • 2027", INK);
+}
+function artJeffries(x: number, y: number, w: number, h: number): void {
+  fillRect(x, y, w, h, hex("#dfe7ea"));
+  fillRect(x + 86, y + 6, 60, 21, NAVY);
+  fillRect(x + 100, y + 6, 32, 3, WHITE);
+  line(x + 92, y + 18, x + 104, y + 26, 3, GREEN);
+  line(x + 104, y + 26, x + 128, y + 8, 3, GREEN);
+  cardStrip(x, y, w, h, NAVY, "251-11 • CAUCUS VOTE");
+}
+function artQuad(x: number, y: number, w: number, h: number): void {
+  fillRect(x, y, w, h, CREAM);
+  const flags: RGB[][] = [
+    [RED, WHITE, BLUE],
+    [hex("#ff9933"), WHITE, GREEN],
+    [WHITE, WHITE, WHITE],
+    [BLUE, BLUE, BLUE],
+  ];
+  for (let f = 0; f < 4; f++) {
+    const fx = x + 18 + f * 52;
+    for (let b = 0; b < 3; b++) fillRect(fx, y + 4 + b * 7, 44, 7, flags[f][b]);
+    if (f === 2) disc(fx + 22, y + 14, 5, RED);
+    if (f === 3) {
+      disc(fx + 10, y + 10, 2, WHITE);
+      disc(fx + 32, y + 18, 2, WHITE);
+    }
+  }
+  cardStrip(x, y, w, h, BLUE, "MANILA • 4 LEADERS");
+}
+function artPeltola(x: number, y: number, w: number, h: number): void {
+  fillRect(x, y, w, h, BLUE);
+  disc(x + 30, y + 14, 6, GOLD);
+  drawText("56-44", x + 52, y + 22, 20, WHITE, { weight: 7 });
+  cardStrip(x, y, w, h, RED, "ALASKA FLIPS");
+}
+function artGaza(x: number, y: number, w: number, h: number): void {
+  fillRect(x, y, w, h, hex("#d9c9a3"));
+  fillRect(x, y + 18, w, 3, GOLD);
+  fillRect(x + 88, y + 8, 56, 10, INK);
+  fillRect(x + 104, y + 2, 20, 8, INK);
+  line(x + 144, y + 12, x + 168, y + 8, 3, INK);
+  disc(x + 100, y + 22, 4, INK);
+  disc(x + 132, y + 22, 4, INK);
+  cardStrip(x, y, w, h, RED, "ACROSS THE YELLOW LINE");
+}
+function artEbola(x: number, y: number, w: number, h: number): void {
+  fillRect(x, y, w, h, PURPLE);
+  for (const [vx, vy] of [[50, 13], [120, 10], [180, 15]] as [number, number][]) {
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      line(x + vx, y + vy, x + vx + Math.cos(a) * 9, y + vy + Math.sin(a) * 9, 2, hex("#d9c9f2"));
+    }
+    disc(x + vx, y + vy, 5, hex("#2e1a4a"));
+  }
+  cardStrip(x, y, w, h, hex("#2e1a4a"), "11,504 CASES");
+}
+function artMeasles(x: number, y: number, w: number, h: number): void {
+  fillRect(x, y, w, h, TEAL);
+  for (const [bx, bh] of [[40, 8], [95, 14], [150, 20]] as [number, number][]) fillRect(x + bx, y + 27 - bh, 30, bh, WHITE);
+  cardStrip(x, y, w, h, hex("#0b4f49"), "5,412 CASES");
+}
+function artAn12(x: number, y: number, w: number, h: number): void {
+  fillRect(x, y, w, h, hex("#7a8a99"));
+  fillRect(x + 60, y + 12, 110, 7, INK);
+  fillPoly([[x + 100, y + 12], [x + 130, y + 24], [x + 112, y + 24]], INK);
+  fillPoly([[x + 160, y + 12], [x + 176, y + 2], [x + 182, y + 12]], INK);
+  fillRect(x + 60, y + 8, 12, 11, INK);
+  cardStrip(x, y, w, h, INK, "19 ABOARD");
+}
+function artXavier(x: number, y: number, w: number, h: number): void {
+  fillRect(x, y, w, h, hex("#0f4c5c"));
+  ring(x + 116, y + 14, 10, 2, WHITE);
+  ring(x + 116, y + 14, 6, 2, WHITE);
+  disc(x + 116, y + 14, 2.5, GOLD);
+  line(x + 40, y + 8, x + 90, y + 14, 2, WHITE);
+  line(x + 150, y + 20, x + 195, y + 10, 2, WHITE);
+  cardStrip(x, y, w, h, hex("#083038"), "220 KM/H • CAT 5");
+}
+function artCop(x: number, y: number, w: number, h: number): void {
+  fillRect(x, y, w, h, CREAM);
+  fillRect(x + 88, y + 3, 56, 24, WHITE);
+  fillRect(x + 94, y + 8, 44, 2, hex("#8a8378"));
+  fillRect(x + 94, y + 13, 44, 2, hex("#8a8378"));
+  fillRect(x + 94, y + 18, 30, 2, hex("#8a8378"));
+  disc(x + 150, y + 14, 6, GREEN);
+  cardStrip(x, y, w, h, GREEN, "PHASE-OUT?");
+}
+function drawCardArt(n: number, x: number, y: number, w: number, h: number): void {
+  if (n === 1) artDrones(x, y, w, h);
+  else if (n === 2) artFed(x, y, w, h);
+  else if (n === 3) artEu(x, y, w, h);
+  else if (n === 4) artJeffries(x, y, w, h);
+  else if (n === 5) artQuad(x, y, w, h);
+  else if (n === 6) artPeltola(x, y, w, h);
+  else if (n === 7) artGaza(x, y, w, h);
+  else if (n === 8) artEbola(x, y, w, h);
+  else if (n === 9) artMeasles(x, y, w, h);
+  else if (n === 10) artAn12(x, y, w, h);
+  else if (n === 11) artXavier(x, y, w, h);
+  else if (n === 12) artCop(x, y, w, h);
+}
+
 // ---------------- world map ----------------
 const CONTINENTS: [number, number][][] = [
   [[-168, 66], [-140, 70], [-120, 72], [-95, 80], [-80, 73], [-75, 62], [-70, 44], [-80, 32], [-90, 21], [-97, 16], [-105, 20], [-115, 30], [-125, 40], [-125, 49], [-145, 60], [-168, 66]],
@@ -597,17 +750,16 @@ const CONTINENTS: [number, number][][] = [
   [[95, 5], [100, 0], [105, -5], [110, -7], [115, -8], [120, -9], [125, -8], [130, -3], [135, -4], [140, -7], [138, -2], [130, 0], [120, 2], [110, 3], [100, 5]],
 ];
 const DOTS: [number, number, number][] = [
-  [56.3, 26.9, 1], [114.1, 22.5, 2], [36.4, 45.3, 3], [121.0, 14.6, 4], [-150.0, 64.0, 5],
-  [34.5, 31.4, 6], [25.0, -2.0, 7], [-98.0, 39.5, 8], [86.0, 55.4, 9], [-160.0, -21.2, 10],
-  [-81.5, 27.5, 11], [-74.0, 40.7, 12], [24.1, 56.9, 13], [2.3, 46.6, 14], [147.0, -6.5, 15],
-  [26.0, 45.7, 15], [80.3, 13.1, 16],
+  [53.0, 24.0, 1], [114.0, 22.5, 2], [38.0, 47.0, 3], [26.0, 55.0, 4], [-71.0, 43.0, 5],
+  [0.0, 53.0, 6], [-81.0, 35.0, 7], [124.0, 12.0, 8], [-150.0, 64.0, 9], [41.0, 27.0, 10],
+  [25.0, -2.0, 11], [-92.0, 29.0, 12], [86.0, 55.4, 13], [-160.0, -21.2, 14], [32.0, 35.0, 15],
 ];
 function drawWorldMap(x: number, y: number, w: number, h: number): void {
-  drawText("WHERE IT HAPPENED", x, y + 20, 15, INK, { weight: 6, ls: 2 });
+  drawText("WHERE IT HAPPENED", x, y + 18, 12, INK, { weight: 6, ls: 1 });
   const mx = x;
-  const my = y + 28;
+  const my = y + 24;
   const mw = w;
-  const mh = h - 28;
+  const mh = h - 24;
   fillRect(mx, my, mw, mh, hex("#dfe7ea"));
   const proj = (lon: number, lat: number): [number, number] => [
     mx + ((lon + 180) / 360) * mw,
@@ -618,8 +770,8 @@ function drawWorldMap(x: number, y: number, w: number, h: number): void {
   }
   for (const [lo, la, n] of DOTS) {
     const [dx, dy] = proj(lo, la);
-    circle(dx, dy, 8, RED);
-    drawText(String(n), dx, dy + 4, 10, WHITE, { align: "center", weight: 7 });
+    circle(dx, dy, 7, RED);
+    drawText(String(n), dx, dy + 3, 8, WHITE, { align: "center", weight: 7 });
   }
 }
 
@@ -627,61 +779,71 @@ function drawWorldMap(x: number, y: number, w: number, h: number): void {
 function drawPoster(): void {
   fillRect(0, 0, W, H, PAPER);
   // header
-  fillRect(0, 0, W, 160, NAVY);
-  drawText("WORLD EDITION", 28, 36, 15, WHITE, { weight: 6, ls: 3 });
-  drawText("ONE DAY • ONE PAGE", 996, 36, 15, WHITE, { weight: 6, ls: 3, align: "right" });
-  const dateSize = fitSize("WEDNESDAY 18 NOVEMBER 2026", 968, 64);
-  drawText("WEDNESDAY 18 NOVEMBER 2026", 28, 118, dateSize, WHITE, { weight: 7 });
-  fillRect(28, 132, 968, 3, GOLD);
-  drawText("THE WORLD'S NEWS, SUMMED UP IN ONE PICTURE", 512, 156, 15, hex("#c9d4e6"), { align: "center", ls: 2, weight: 5 });
+  fillRect(0, 0, W, 148, NAVY);
+  drawText("WORLD EDITION", 28, 34, 14, WHITE, { weight: 6, ls: 3 });
+  drawText("ONE DAY • ONE PAGE", 996, 34, 14, WHITE, { weight: 6, ls: 3, align: "right" });
+  const dateSize = fitSize("WEDNESDAY 18 NOVEMBER 2026", 968, 50);
+  drawText("WEDNESDAY 18 NOVEMBER 2026", 28, 88, dateSize, WHITE, { weight: 7 });
+  fillRect(28, 100, 968, 3, GOLD);
+  drawText("39 STORIES • 7 REGIONS • 15 DRAWN", 28, 120, 13, WHITE, { weight: 7 });
+  drawText(REGION_BAR, 996, 120, 11, hex("#c9d4e6"), { align: "right", weight: 5 });
+  const nsz = fitSize(NUMBERS_LINE, 968, 10.5);
+  drawText(NUMBERS_LINE, 28, 142, nsz, hex("#c9d4e6"), { weight: 5 });
   // leads
   const leadX = [28, 356, 684];
   LEADS.forEach((lead, i) => {
     const x = leadX[i];
-    if (lead.art === 1) drawGulf(x, 172, 312, 132);
-    if (lead.art === 2) drawApec(x, 172, 312, 132);
-    if (lead.art === 3) drawKerch(x, 172, 312, 132);
-    badge(x + 16, 188, lead.num);
-    drawText(lead.kicker, x, 326, 13, RED, { weight: 6, ls: 2 });
-    const hl = drawPara(lead.head, x, 354, 312, 25, 29, INK, { weight: 7 });
-    drawParaFit(lead.deck, x, 354 + hl * 29 + 8, 312, 14, 19, INK, { weight: 5 }, 4, 12);
+    if (lead.art === 1) drawGulf(x, 156, 312, 128);
+    if (lead.art === 2) drawApec(x, 156, 312, 128);
+    if (lead.art === 3) drawKerch(x, 156, 312, 128);
+    badge(x + 16, 172, lead.num);
+    drawText(lead.kicker, x, 298, 13, RED, { weight: 6, ls: 2 });
+    drawText(lead.src, x + 312, 298, 10, GREY, { align: "right", weight: 6 });
+    const hl = drawParaFit(lead.head, x, 320, 312, 19, 21, INK, { weight: 7 }, 2, 16);
+    drawParaFit(lead.deck, x, 320 + hl * 21 + 4, 312, 11.5, 13.5, INK, { weight: 5 }, 2, 10);
   });
-  fillRect(28, 476, 968, 2, GREY);
-  // grid: 3 columns, 5 + 4 + 4 items
-  const colX = [28, 356, 684];
-  const colCounts = [5, 4, 4];
-  let gi = 0;
-  for (let c = 0; c < 3; c++) {
-    const count = colCounts[c];
-    const itemH = 272 / count;
-    for (let j = 0; j < count; j++) {
-      const it = GRID[gi++];
-      const iy = 488 + j * itemH;
+  fillRect(28, 394, 968, 2, GREY);
+  // cards: 3 rows x 4 columns, each with a small illustration
+  const colX = [28, 273, 518, 763];
+  const rowY = [400, 526, 652];
+  for (let r = 0; r < 3; r++) {
+    for (let c = 0; c < 4; c++) {
+      const it = GRID[r * 4 + c];
       const x = colX[c];
-      circle(x + 11, iy + 12, 11, RED);
-      drawText(String(it.num), x + 11, iy + 17, 14, WHITE, { align: "center", weight: 7 });
-      const catW = textWidth(it.cat + "  ", 15, 0);
-      drawText(it.cat, x + 28, iy + 18, 15, it.color, { weight: 7 });
-      const hs = fitSize(it.head, 312 - 28 - catW, 15);
-      drawText(it.head, x + 28 + catW, iy + 18, hs, INK, { weight: 7 });
-      drawParaFit(it.deck, x + 28, iy + 36, 284, 12.5, 14, INK, { weight: 5 }, 2, 11);
+      const y = rowY[r];
+      drawCardArt(it.art, x, y, 233, 36);
+      circle(x + 10, y + 48, 9, RED);
+      drawText(String(it.num), x + 10, y + 52, 12, WHITE, { align: "center", weight: 7 });
+      drawText(it.cat, x + 24, y + 52, 13, it.color, { weight: 7 });
+      drawText(it.src, x + 233, y + 52, 9, GREY, { align: "right", weight: 6 });
+      const hl = drawParaFit(it.head, x, y + 68, 233, 14, 14, INK, { weight: 7 }, 2, 12);
+      drawParaFit(it.deck, x, y + 68 + hl * 14 + 3, 233, 10.5, 11.5, INK, { weight: 5 }, 2, 9.5);
     }
   }
+  fillRect(28, 782, 968, 2, GREY);
   // map + also
-  drawWorldMap(28, 772, 392, 212);
-  drawText("ALSO ON WEDNESDAY", 436, 792, 15, INK, { weight: 6, ls: 2 });
-  for (let i = 0; i < 16; i++) {
-    const col = i < 8 ? 0 : 1;
-    const row = i % 8;
+  drawWorldMap(28, 788, 392, 179);
+  drawText("ALSO ON WEDNESDAY", 436, 806, 13, INK, { weight: 6, ls: 2 });
+  for (let i = 0; i < 24; i++) {
+    const col = i < 12 ? 0 : 1;
+    const row = i % 12;
     const ax = 436 + col * 280;
-    const ay = 820 + row * 22;
-    drawText("•", ax, ay, 12, RED, { weight: 6 });
-    const sz = fitSize(ALSO[i], 250, 12);
-    drawText(ALSO[i], ax + 14, ay, sz, INK, { weight: 5 });
+    const ay = 818 + row * 13.5;
+    drawText("•", ax, ay, 10, RED, { weight: 6 });
+    const sz = fitSize(ALSO[i], 262, 10.5);
+    drawText(ALSO[i], ax + 12, ay, sz, INK, { weight: 5 });
   }
+  // date check strip
+  fillRect(28, 973, 968, 2, RED);
+  fillRect(28, 1012, 968, 2, RED);
+  fillRect(28, 973, 2, 41, RED);
+  fillRect(994, 973, 2, 41, RED);
+  drawText(DATECHECK_1, 40, 986, 10, RED, { weight: 7 });
+  drawText(DATECHECK_2, 40, 998, 9.5, INK, { weight: 5 });
+  drawText(DATECHECK_3, 40, 1009, 9.5, INK, { weight: 5 });
   // footer
-  const fs = fitSize(SOURCES, 968, 10.5);
-  drawText(SOURCES, 28, 1012, fs, GREY, { weight: 5 });
+  const fs = fitSize(SOURCES, 968, 8.5);
+  drawText(SOURCES, 28, 1019, fs, GREY, { weight: 5 });
 }
 
 // ---------------- main ----------------
