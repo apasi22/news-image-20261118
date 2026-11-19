@@ -253,7 +253,7 @@ const quad = (p0: [number, number], p1: [number, number], p2: [number, number], 
 // h = serif height, b = bracket rise. (r9) serifs are larger and more
 // bracketed, like the top-1 title serif.
 const stemS = (x: number, y0: number, y1: number, w: number, top = true, bot = true): Part => {
-  const s = 4, h = 5, b = 6;
+  const s = 3, h = 5, b = 6;  // (r10) smaller serif extension so the condensed face does not collide
   const pts: Ctr = [];
   if (bot) {
     pts.push([x - s, y0], [x - s, y0 + h]);
@@ -519,36 +519,66 @@ const FONT: Record<string, OGlyph> = {
 // Glyph baru untuk sub-judul: E t h i g p u w f , . — seluruh kalimat
 // sub-judul kini serif penuh (tidak ada fallback ke sans).
 const SERIF: Record<string, OGlyph> = {
-  "0": [60, [bowlC(28, 35, 20, 32, 10, 3.5)]],
-  "1": [60, [stemS(27, 0, 70, 11, false, true), [diagT(16, 54, 28, 70, 6, 4)]]],
-  "2": [60, [[arcC(28, 54, 16, 13, -10, 190, 8, 3.5)], [diagT(44, 52, 12, 6, 6, 6)], [rect(8, 0, 48, 6)]]],
-  "6": [60, [[arcC(28, 40, 15, 18, 90, 270, 8, 3.5)], bowlC(28, 22, 15, 18, 10, 3.5)]],
-  "8": [60, [bowlC(28, 52, 14, 14, 9, 3.5), bowlC(28, 20, 15, 16, 10, 3.5)]],
-  W: [60, [[diagT(4, 70, 14, 0, 11, 5)], [diagT(14, 0, 28, 70, 5, 4)], [diagT(28, 70, 42, 0, 4, 5)], [diagT(42, 0, 52, 70, 5, 11)], [rect(10, 0, 18, 3)], [rect(38, 0, 46, 3)]]],
-  N: [60, [stemS(8, 0, 70, 11), [diagT(10, 68, 46, 2, 7, 5)], stemS(39, 0, 70, 11)]],
-  E: [54, [stemS(8, 0, 70, 11), [rect(8, 63, 46, 70)], [rect(8, 31, 38, 38)], [rect(8, 0, 46, 7)]]],
-  a: [54, [bowlC(26, 41, 12, 8, 6, 3), bowlC(26, 18, 18, 19.5, 10, 3.5), stemS(37, 0, 48, 10)]],
-  b: [54, [stemS(10, 0, 72, 10), bowlC(27, 24, 20, 25.5, 10, 3.5)]],
-  d: [54, [bowlC(27, 24, 20, 25.5, 10, 3.5), stemS(37, 0, 72, 10)]],
-  e: [54, [[arcC(27, 24, 20, 25.5, 25, 335, 9, 3.5)], [rect(10, 24, 44, 28)]]],
-  f: [48, [stemS(20, 0, 66, 10, false, true), [arcBandT(24, 58, 9, 9, 0, 180, 4, 8)], [barT(8, 38, 46.5, 7, 2)]]],
-  g: [54, [bowlC(26, 34.5, 16, 15, 9, 3.5), bowlC(26, -9, 13, 12, 9, 3.5), stemS(34, -21, 48, 10, true, false)]],
-  h: [54, [stemS(10, 0, 72, 10), [arcC(23, 34, 15, 15.5, 0, 180, 9, 3.5)], stemS(36, 0, 34, 10, false, true)]],
-  i: [28, [stemS(10, 0, 48, 10, false, true), [ell(14, 64, 4.5, 4.5)]]],
-  m: [58, [stemS(6, 0, 48, 10), [arcC(20, 34, 14, 15, 0, 180, 9, 3.5)], stemS(26, 0, 34, 10, false, true), [arcC(40, 34, 14, 15, 0, 180, 9, 3.5)], stemS(46, 0, 34, 10, false, true)]],
-  n: [54, [stemS(10, 0, 48, 10), [arcC(26, 34, 18, 15.5, 0, 180, 9, 3.5)], stemS(36, 0, 34, 10, false, true)]],
-  o: [54, [bowlC(27, 24, 20, 25.5, 10, 3.5)]],
-  p: [54, [stemS(10, -24, 48, 10, false, false), bowlC(27, 24, 20, 25.5, 10, 3.5)]],
-  r: [54, [stemS(10, 0, 48, 10), [arcBandT(23, 34, 14, 15, -20, 120, 3, 8)]]],
-  s: [54, [[arcC(27, 38, 15, 11.5, 25, 285, 9, 5)], [arcC(27, 12, 15, 13.5, 195, 450, 9, 5)]]],
-  t: [36, [stemS(14, -2, 68, 10, false, true), [barT(4, 32, 46.5, 7, 2)]]],
-  u: [54, [stemS(10, 0, 48, 10), stemS(36, 0, 48, 10), [arcC(27, 12, 14, 13.5, 180, 360, 9, 3.5)]]],
-  v: [54, [[diagT(8, 48, 26, 0, 10, 4)], [diagT(44, 48, 26, 0, 4, 4)]]],
-  w: [50, [[diagT(6, 48, 17, -1, 9, 4)], [diagT(17, -1, 28, 48, 4, 4)], [diagT(28, 48, 39, -1, 4, 4)], [diagT(39, -1, 48, 48, 4, 9)]]],
-  y: [54, [[curveStroke([8, 48], [20, 16], [26, 4], 10, 7)], [curveStroke([44, 48], [32, 16], [26, 4], 7, 7)], [curveStroke([26, 4], [24, -8], [10, -22], 7, 3.5)]]],
-  " ": [28, []],
-  ",": [28, [[ell(26, 3, 3.5, 3.5)], [diag(28, 2, 20, -12, 5)]]],
-  ".": [28, [[ell(26, 3, 3.5, 3.5)]]],
+  "0": [55, [bowlC(26, 35, 18.5, 32, 10, 3.5)]],
+  "1": [55, [stemS(25, 0, 70, 12, false, true), [diagT(14.5, 54, 26, 70, 7, 5)]]],
+  "2": [55, [[arcC(26, 54, 14.5, 13, -10, 190, 8, 3.5)], [diagT(40.5, 52, 11, 6, 7, 7)], [rect(7.5, 0, 44, 6)]]],
+  "6": [55, [[arcC(26, 40, 14, 18, 90, 270, 8, 3.5)], bowlC(26, 22, 14, 18, 10, 3.5)]],
+  "8": [55, [bowlC(26, 52, 13, 14, 9, 3.5), bowlC(26, 20, 14, 16, 10, 3.5)]],
+  W: [55, [[diagT(3.5, 70, 13, 0, 12, 6)], [diagT(13, 0, 26, 70, 6, 5)], [diagT(26, 70, 38.5, 0, 5, 6)], [diagT(38.5, 0, 48, 70, 6, 12)], [rect(9, 0, 16.5, 3)], [rect(35, 0, 42.5, 3)]]],
+  N: [55, [stemS(7.5, 0, 70, 12), [diagT(9, 68, 42.5, 2, 8, 6)], stemS(36, 0, 70, 12)]],
+  E: [50, [stemS(7.5, 0, 70, 12), [rect(7.5, 63, 42.5, 70)], [rect(7.5, 31, 35, 38)], [rect(7.5, 0, 42.5, 7)]]],
+  a: [50, [bowlC(24, 41, 11, 8, 6, 3), bowlC(24, 18, 16.5, 19.5, 10, 3.5), stemS(34, 0, 48, 11)]],
+  b: [50, [stemS(9, 0, 72, 11), bowlC(25, 24, 18.5, 25.5, 10, 3.5)]],
+  d: [50, [bowlC(25, 24, 18.5, 25.5, 10, 3.5), stemS(34, 0, 72, 11)]],
+  e: [50, [[arcC(25, 24, 18.5, 25.5, 25, 335, 9, 3.5)], [rect(9, 24, 40.5, 28)]]],
+  f: [44, [stemS(18.5, 0, 66, 11, false, true), [arcBandT(22, 58, 8.5, 9, 0, 180, 4, 8)], [barT(7.5, 35, 46.5, 8, 2)]]],
+  g: [50, [bowlC(24, 34.5, 14.5, 15, 9, 3.5), bowlC(24, -9, 12, 12, 9, 3.5), stemS(31.5, -21, 48, 11, true, false)]],
+  h: [50, [stemS(9, 0, 72, 11), [arcC(21, 34, 14, 15.5, 0, 180, 9, 3.5)], stemS(33, 0, 34, 11, false, true)]],
+  i: [26, [stemS(9, 0, 48, 11, false, true), [ell(13, 64, 4, 4.5)]]],
+  m: [53, [stemS(5.5, 0, 48, 11), [arcC(18.5, 34, 13, 15, 0, 180, 9, 3.5)], stemS(24, 0, 34, 11, false, true), [arcC(37, 34, 13, 15, 0, 180, 9, 3.5)], stemS(42.5, 0, 34, 11, false, true)]],
+  n: [50, [stemS(9, 0, 48, 11), [arcC(24, 34, 16.5, 15.5, 0, 180, 9, 3.5)], stemS(33, 0, 34, 11, false, true)]],
+  o: [50, [bowlC(25, 24, 18.5, 25.5, 10, 3.5)]],
+  p: [50, [stemS(9, -24, 48, 11, false, false), bowlC(25, 24, 18.5, 25.5, 10, 3.5)]],
+  r: [50, [stemS(9, 0, 48, 11), [arcBandT(21, 34, 13, 15, -20, 120, 3, 8)]]],
+  s: [50, [[arcC(25, 38, 14, 11.5, 25, 285, 9, 5)], [arcC(25, 12, 14, 13.5, 195, 450, 9, 5)]]],
+  t: [33, [stemS(13, -2, 68, 11, false, true), [barT(3.5, 29.5, 46.5, 8, 2)]]],
+  u: [50, [stemS(9, 0, 48, 11), stemS(33, 0, 48, 11), [arcC(25, 12, 13, 13.5, 180, 360, 9, 3.5)]]],
+  v: [50, [[diagT(7.5, 48, 24, 0, 11, 5)], [diagT(40.5, 48, 24, 0, 5, 5)]]],
+  w: [46, [[diagT(5.5, 48, 15.5, -1, 10, 5)], [diagT(15.5, -1, 26, 48, 5, 5)], [diagT(26, 48, 36, -1, 5, 5)], [diagT(36, -1, 44, 48, 5, 10)]]],
+  y: [50, [[curveStroke([7.5, 48], [18.5, 16], [24, 4], 10, 7)], [curveStroke([40.5, 48], [29.5, 16], [24, 4], 7, 7)], [curveStroke([24, 4], [22, -8], [9, -22], 7, 3.5)]]],
+  " ": [26, []],
+  ",": [26, [[ell(24, 3, 3, 3.5)], [diag(26, 2, 18.5, -12, 6)]]],
+  ".": [26, [[ell(24, 3, 3, 3.5)]]],
+  // (r10) headline glyphs — SERIF completed so all 15 headlines can be
+  // set in bold serif like top-1. Written directly at the condensed scale
+  // (advances x0.92, stems +1), mirroring the sans shapes.
+  "3": [55, [[arcC(26.5, 54, 13, 13, -50, 180, 8, 3.5)], [arcC(26.5, 19, 14, 14, 180, 410, 8, 3.5)], [rect(27.5, 26, 40.5, 48)]]],
+  "4": [55, [[diagT(37, 70, 11, 24, 8, 6)], [rect(7.5, 19, 40.5, 26)], stemS(29.5, 0, 70, 10, false, true)]],
+  "5": [55, [[rect(9, 63, 40.5, 70)], stemS(9, 36, 68, 10, false, false), [rect(9, 32, 29.5, 39)], [arcC(26, 20, 14, 16, 250, 450, 8, 3.5)]]],
+  "9": [55, [bowlC(26, 48, 14, 18, 8, 3.5), stemS(35, 0, 50, 10, false, false)]],
+  A: [55, [[diagS(5.5, 0, 26, 71.5, 10, 5.5)], [diagS(26, 71.5, 46, 0, 5.5, 10)], [barT(13, 38.5, 26.5, 8, 2)]]],
+  C: [55, [[arcC(26, 35, 19.5, 36.5, 40, 320, 9, 3.5)]]],
+  D: [55, [stemS(7.5, 0, 70, 11), bowlC(27.5, 35, 19.5, 36.5, 9, 3.5)]],
+  G: [55, [[arcC(26, 35, 19.5, 36.5, 40, 320, 9, 3.5)], [rect(26, 27, 44, 34)], stemS(39.5, 4, 30, 8, false, false)]],
+  I: [55, [stemS(22, 0, 70, 12)]],
+  J: [55, [stemS(31.5, 0, 70, 11, true, false), [arcC(27.5, 12, 15, 12, 180, 295, 8, 3.5)]]],
+  K: [55, [stemS(7.5, 0, 70, 11), [diagS(18.5, 24, 40.5, 70, 6, 9)], [diagS(18.5, 24, 40.5, 0, 6, 9)]]],
+  L: [55, [stemS(7.5, 0, 70, 11), [barT(7.5, 44, 3.5, 8, 2)]]],
+  M: [55, [stemS(5.5, 0, 70, 11), [diagS(5.5, 70, 26, 28, 9, 5)], [diagS(26, 28, 46, 70, 5, 9)], stemS(43.5, 0, 70, 11)]],
+  O: [55, [bowlC(26, 35, 20, 36.5, 9, 3.5)]],
+  P: [55, [stemS(7.5, 0, 70, 11), bowlC(26.5, 54, 14, 17.5, 9, 3.5)]],
+  R: [55, [stemS(7.5, 0, 70, 11), bowlC(26.5, 54, 14, 17.5, 9, 3.5), [diagS(26, 36, 44, 0, 6, 8.5)]]],
+  S: [55, [[arcC(26, 54, 15, 17, 30, 285, 9, 5)], [arcC(26, 17, 16, 19, 195, 450, 9, 5)]]],
+  U: [55, [stemS(7.5, 0, 70, 11), stemS(36, 0, 70, 11), [arcC(26, 12, 14, 13.5, 180, 360, 9, 3.5)]]],
+  X: [55, [[diagX(9, 70, 42.5, 0, 9, 6)], [diagX(42.5, 70, 9, 0, 9, 6)]]],
+  c: [50, [[arcC(25, 24, 18.5, 25.5, 40, 320, 9, 3.5)]]],
+  k: [50, [stemS(9, 0, 72, 10), [diagS(18.5, 24, 38.5, 48, 5.5, 8)], [diagS(18.5, 24, 38.5, 0, 5.5, 8)]]],
+  l: [26, [stemS(9, 0, 72, 10)]],
+  x: [50, [[diagX(9, 48, 38.5, 0, 8, 5.5)], [diagX(38.5, 48, 9, 0, 8, 5.5)]]],
+  "-": [31, [[rect(9, 24, 24, 30)]]],
+  ":": [26, [[ell(24, 29, 3.5, 3.5)], [ell(24, 7, 3.5, 3.5)]]],
+  ";": [26, [[ell(24, 29, 3.5, 3.5)], [ell(24, 7, 3.5, 3.5)], [diag(26, 6, 18.5, -10, 6)]]],
+  "€": [55, [[arcC(26, 35, 18.5, 33, 45, 315, 8, 3.5)], [rect(5.5, 28, 46, 35)], [rect(5.5, 42, 46, 49)]]],
 };
 
 // Even-odd scanline fill over several contours at once (a ring = outer +
@@ -1260,7 +1290,7 @@ function drawPoster(): void {
   drawText("WED · 2026", 60, 98, 8, NAVY, { align: "center", weight: 6 });
   drawText("THE DAY IN WORLD NEWS", 110, 20, 13, GOLD, { weight: 7, ls: 2 });
   drawText("39 STORIES • 7 REGIONS • 15 DRAWN • ONE PAGE", 996, 20, 11, GOLD, { align: "right", weight: 6, ls: 1 });
-  const dateSize = fitSize("Wednesday 18 November 2026", 886, 46, 0, "serif");
+  const dateSize = fitSize("Wednesday 18 November 2026", 886, 48, 0, "serif");
   drawText("Wednesday 18 November 2026", 110, 82, dateSize, WHITE, { weight: 7, face: "serif" });
   drawText("Everything on this page happened, or was first reported, on Wednesday 18 November 2026.", 110, 106, 13, hex("#c9d4e6"), { weight: 5, italic: true, face: "serif" });
   // region bar: colored segments, one per region, widths by story count (total 39)
@@ -1289,7 +1319,7 @@ function drawPoster(): void {
     badge(x + 16, 176, lead.num);
     drawText(lead.kicker, x, 290, 13, leadCol[i], { weight: 7, ls: 2 });
     drawText(lead.src, x + 312, 290, 10, GREY, { align: "right", weight: 6 });
-    const hl = drawParaFit(lead.head, x, 312, 312, 19, 21, INK, { weight: 7 }, 2, 16);
+    const hl = drawParaFit(lead.head, x, 312, 312, 19, 21, INK, { weight: 7, face: "serif" }, 2, 16);
     drawParaFit(lead.deck, x, 312 + hl * 21 + 4, 312, 11.5, 13.5, INK, { weight: 5 }, 2, 10);
   });
   fillRect(28, 386, 968, 2, GREY);
@@ -1306,7 +1336,7 @@ function drawPoster(): void {
       drawText(String(it.num), x + 10, y + 66, 12, WHITE, { align: "center", weight: 7 });
       drawText(it.cat, x + 24, y + 66, 12, it.color, { weight: 7 });
       drawText(it.src, x + 233, y + 66, 9, GREY, { align: "right", weight: 6 });
-      const hl = drawParaFit(it.head, x, y + 80, 233, 13.5, 14, INK, { weight: 7 }, 2, 12);
+      const hl = drawParaFit(it.head, x, y + 80, 233, 13.5, 14, INK, { weight: 7, face: "serif" }, 2, 12);
       drawParaFit(it.deck, x, y + 80 + hl * 14 + 2, 233, 10, 10.5, INK, { weight: 5 }, 2, 9);
     }
   }
@@ -1351,7 +1381,7 @@ function drawFontTest(): void {
   drawText("WED · 2026", 60, 98, 8, NAVY, { align: "center", weight: 6 });
   drawText("THE DAY IN WORLD NEWS", 110, 20, 13, GOLD, { weight: 7, ls: 2 });
   drawText("39 STORIES • 7 REGIONS • 15 DRAWN • ONE PAGE", 996, 20, 11, GOLD, { align: "right", weight: 6, ls: 1 });
-  const dateSize = fitSize("Wednesday 18 November 2026", 886, 46, 0, "serif");
+  const dateSize = fitSize("Wednesday 18 November 2026", 886, 48, 0, "serif");
   drawText("Wednesday 18 November 2026", 110, 88, dateSize, WHITE, { weight: 7, face: "serif" });
   drawText("SERIF — TITLE GLYPHS 44PX", 28, 150, 12, GREY, { weight: 7, ls: 1 });
   drawText("Wednesday 18 November 2026", 28, 200, 44, INK, { weight: 7, face: "serif" });
@@ -1361,10 +1391,10 @@ function drawFontTest(): void {
   drawText("SANS — REGULAR 36PX", 28, 400, 12, GREY, { weight: 7, ls: 1 });
   drawText("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 28, 450, 36, INK, { weight: 5 });
   drawText("abcdefghijklmnopqrstuvwxyz", 28, 500, 36, INK, { weight: 5 });
-  drawText("HEADLINES — BOLD SANS 19PX", 28, 550, 12, GREY, { weight: 7, ls: 1 });
-  drawText("Iran drones hit U.S. bases in Gulf", 28, 585, 19, INK, { weight: 7 });
-  drawText("Xi and Putin meet as APEC opens", 28, 615, 19, INK, { weight: 7 });
-  drawText("Kerch bridge down; rail back", 28, 645, 19, INK, { weight: 7 });
+  drawText("HEADLINES — BOLD SERIF 19PX", 28, 550, 12, GREY, { weight: 7, ls: 1 });
+  drawText("Iran drones hit U.S. bases in Gulf", 28, 585, 19, INK, { weight: 7, face: "serif" });
+  drawText("Xi and Putin meet as APEC opens", 28, 615, 19, INK, { weight: 7, face: "serif" });
+  drawText("Kerch bridge down; rail back", 28, 645, 19, INK, { weight: 7, face: "serif" });
   drawText("DECKS — REGULAR SANS 11.5PX", 28, 690, 12, GREY, { weight: 7, ls: 1 });
   drawText("Iran fires drones at U.S. bases in Kuwait and Bahrain; all intercepted.", 28, 725, 11.5, INK, { weight: 5 });
   drawText("Xi opens the 33rd APEC meeting of 21 economies and urges free trade.", 28, 745, 11.5, INK, { weight: 5 });
