@@ -174,14 +174,16 @@ function pngEncode(): Buffer {
   ]);
 }
 
-// ---------------- ordinary serif font (filled outlines, exact geometry) ----------------
+// ---------------- two faces: clean sans (default) + bold serif (title) ----------------
 // Glyph space: x 0..56, baseline y=0, cap height 70, x-height 48,
-// ascender 72, descender -24. A plain Times-like face: straight vertical
-// stems with small flat serifs, symmetric ellipse bowls, thin horizontals.
-// Every glyph is a list of parts; each part is one even-odd fill, and parts
-// are drawn in order, so overlapping solid shapes (stem over bowl, bar over
-// counter) compose correctly. All advances are unchanged from the previous
-// font, so every line still fits exactly as before.
+// ascender 72, descender -24. The sans face (FONT) is a clean even-stroke
+// face: plain stems, uniform rings and arcs, no serifs — the modern
+// data-journalism look. The serif face (SERIF) is used only for the big
+// title and the badge "18": bracketed serifs, thick/thin contrast, tapered
+// diagonals — a real printed newspaper serif. Every glyph is a list of
+// parts; each part is one even-odd fill, and parts are drawn in order, so
+// overlapping solid shapes compose correctly. All advances are unchanged
+// from the previous font, so every line still fits exactly as before.
 type Ctr = [number, number][];
 type Part = Ctr[];
 type OGlyph = [number, Part[]];
@@ -229,21 +231,91 @@ const diag = (x0: number, y0: number, x1: number, y1: number, w: number): Ctr =>
     [x0 - nx, y0 - ny],
   ];
 };
-// Vertical stem with real serifs — a bold newspaper serif face: the stem
-// is a thick even bar with flat serif slabs at its ends (3 units out each
-// side, 4 units tall). At small sizes the slabs are sub-pixel, so labels
-// still read as clean sans; at headline/date sizes they read as serifs.
+// Plain vertical stem (no serifs) — the sans face. The top/bot parameters
+// are kept for call-site compatibility and ignored; bracketed serifs live
+// in stemS below and are used only by the serif face.
 const stem = (x: number, y0: number, y1: number, w: number, top = true, bot = true): Part[] => {
-  const parts: Part[] = [[rect(x, y0, x + w, y1)]];
-  if (top) parts.push([rect(x - 3, y1 - 4, x + w + 3, y1)]);
-  if (bot) parts.push([rect(x - 3, y0, x + w + 3, y0 + 4)]);
-  return parts;
+  return [[rect(x, y0, x + w, y1)]];
+};
+// Quadratic bezier sampler (for serif brackets).
+const quad = (p0: [number, number], p1: [number, number], p2: [number, number], n = 4): Ctr => {
+  const pts: Ctr = [];
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    const u = 1 - t;
+    pts.push([u * u * p0[0] + 2 * u * t * p1[0] + t * t * p2[0], u * u * p0[1] + 2 * u * t * p1[1] + t * t * p2[1]]);
+  }
+  return pts;
+};
+// Bracketed-serif stem (serif face only): one closed outline. The serif is
+// a slab whose top edge curves (brackets) into the stem, so the foot reads
+// as a real printed serif instead of a flat rectangle. s = serif extension,
+// h = serif height, b = bracket rise.
+const stemS = (x: number, y0: number, y1: number, w: number, top = true, bot = true): Part => {
+  const s = 3, h = 4, b = 5;
+  const pts: Ctr = [];
+  if (bot) {
+    pts.push([x - s, y0], [x - s, y0 + h]);
+    pts.push(...quad([x - s, y0 + h], [x - s, y0 + h + b], [x, y0 + h + b]).slice(1));
+  } else {
+    pts.push([x, y0]);
+  }
+  if (top) {
+    pts.push([x, y1 - h - b]);
+    pts.push(...quad([x, y1 - h - b], [x, y1 - h], [x - s, y1 - h]).slice(1));
+    pts.push([x - s, y1], [x + w + s, y1], [x + w + s, y1 - h]);
+    pts.push(...quad([x + w + s, y1 - h], [x + w + s, y1 - h - b], [x + w, y1 - h - b]).slice(1));
+  } else {
+    pts.push([x, y1], [x + w, y1]);
+  }
+  if (bot) {
+    pts.push([x + w, y0 + h + b]);
+    pts.push(...quad([x + w, y0 + h + b], [x + w + s, y0 + h + b], [x + w + s, y0 + h]).slice(1));
+    pts.push([x + w + s, y0]);
+  } else {
+    pts.push([x + w, y0]);
+  }
+  return [pts];
+};
+// Contrast ring (serif face): thick at the sides, thin at top/bottom.
+const bowlC = (cx: number, cy: number, rx: number, ry: number, thSide: number, thTop: number): Part => [
+  ell(cx, cy, rx, ry),
+  ell(cx, cy, rx - thSide, ry - thTop),
+];
+// Contrast arc band (serif face): thickness varies from thSide at the
+// horizontal extremes to thTop at the vertical extremes (vertical stress).
+const arcC = (cx: number, cy: number, rx: number, ry: number, a0: number, a1: number, thSide: number, thTop: number, n = 16): Ctr => {
+  const p: Ctr = [];
+  for (let i = 0; i <= n; i++) {
+    const a = ((a0 + ((a1 - a0) * i) / n) * Math.PI) / 180;
+    p.push([cx + rx * Math.cos(a), cy + ry * Math.sin(a)]);
+  }
+  for (let i = n; i >= 0; i--) {
+    const a = ((a0 + ((a1 - a0) * i) / n) * Math.PI) / 180;
+    const th = thTop + (thSide - thTop) * Math.abs(Math.cos(a));
+    p.push([cx + (rx - th) * Math.cos(a), cy + (ry - th) * Math.sin(a)]);
+  }
+  return p;
+};
+// Tapered diagonal (serif face): width w0 at the start, w1 at the end.
+const diagT = (x0: number, y0: number, x1: number, y1: number, w0: number, w1: number): Ctr => {
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  const len = Math.hypot(dx, dy);
+  const nx = -dy / len;
+  const ny = dx / len;
+  return [
+    [x0 + nx * (w0 / 2), y0 + ny * (w0 / 2)],
+    [x1 + nx * (w1 / 2), y1 + ny * (w1 / 2)],
+    [x1 - nx * (w1 / 2), y1 - ny * (w1 / 2)],
+    [x0 - nx * (w0 / 2), y0 - ny * (w0 / 2)],
+  ];
 };
 const FONT: Record<string, OGlyph> = {
   "0": [60, [bowl(28, 35, 20, 32, 7)]],
   "1": [60, [...stem(26, 0, 70, 11), [diag(18, 56, 30, 70, 7)]]],
   "2": [60, [[arcBand(28, 54, 16, 13, -10, 190, 7)], [diag(44, 52, 12, 6, 7)], [rect(8, 0, 48, 7)]]],
-  "3": [60, [[arcBand(29, 54, 14, 13, -50, 180, 7)], [arcBand(29, 19, 15, 14, 180, 410, 7)], [rect(35, 28, 44, 46)]]],
+  "3": [60, [[arcBand(29, 54, 14, 13, -50, 180, 7)], [arcBand(29, 19, 15, 14, 180, 410, 7)], [rect(30, 26, 44, 48)]]],
   "4": [60, [[diag(40, 70, 12, 24, 7)], [rect(8, 19, 44, 26)], ...stem(32, 0, 70, 9, false, true)]],
   "5": [60, [[rect(10, 63, 44, 70)], ...stem(10, 36, 68, 9, false, false), [rect(10, 32, 32, 39)], [arcBand(28, 20, 15, 16, 250, 450, 7)]]],
   "6": [60, [[arcBand(28, 40, 15, 18, 90, 270, 7)], bowl(28, 22, 15, 18, 7)]],
@@ -258,7 +330,7 @@ const FONT: Record<string, OGlyph> = {
   F: [60, [...stem(8, 0, 70, 11), [rect(8, 63, 48, 70)], [rect(8, 31, 38, 38)]]],
   G: [60, [[arcBand(28, 35, 20, 33, 45, 315, 7)], [rect(28, 27, 48, 34)], ...stem(43, 4, 30, 7, false, false)]],
   H: [60, [...stem(8, 0, 70, 11), ...stem(39, 0, 70, 11), [rect(8, 31, 49, 38)]]],
-  I: [60, [...stem(24, 0, 70, 11)]],
+  I: [60, [[rect(24, 0, 35, 70)], [rect(14, 63, 38, 70)], [rect(14, 0, 38, 7)]]],
   J: [60, [...stem(34, 0, 70, 11, true, false), [arcBand(30, 12, 16, 12, 180, 270, 7)]]],
   K: [60, [...stem(8, 0, 70, 11), [diag(16, 34, 44, 70, 8)], [diag(22, 26, 44, 0, 8)]]],
   L: [60, [...stem(8, 0, 70, 11), [rect(8, 0, 48, 7)]]],
@@ -324,6 +396,33 @@ const FONT: Record<string, OGlyph> = {
   "•": [28, [[ell(26, 30, 5, 5)]]],
 };
 
+// Serif face — used ONLY for the big title ("Wednesday 18 November 2026")
+// and the calendar badge "18". Real printed-serif construction: bracketed
+// serifs (stemS), thick/thin contrast in bowls and arcs (bowlC/arcC), and
+// tapered diagonals (diagT). Same advances as the sans face, so the title
+// still fits exactly as before.
+const SERIF: Record<string, OGlyph> = {
+  "0": [60, [bowlC(28, 35, 20, 32, 9, 5)]],
+  "1": [60, [stemS(26, 0, 70, 11, false, true), [diagT(17, 55, 29, 70, 7, 5)]]],
+  "2": [60, [[arcC(28, 54, 16, 13, -10, 190, 7, 4)], [diagT(44, 52, 12, 6, 6, 6)], [rect(8, 0, 48, 7)]]],
+  "6": [60, [[arcC(28, 40, 15, 18, 90, 270, 7, 4)], bowlC(28, 22, 15, 18, 8, 4)]],
+  "8": [60, [bowlC(28, 52, 14, 14, 8, 4), bowlC(28, 20, 15, 16, 8, 4)]],
+  W: [60, [[diagT(4, 70, 14, 0, 10, 6)], [diagT(14, 0, 28, 70, 6, 10)], [diagT(28, 70, 42, 0, 10, 6)], [diagT(42, 0, 52, 70, 6, 10)]]],
+  N: [60, [stemS(8, 0, 70, 11), [diagT(10, 68, 46, 2, 7, 5)], stemS(39, 0, 70, 11)]],
+  a: [54, [bowlC(26, 41, 10, 8, 5, 3), bowlC(26, 20, 15, 17, 8, 4), stemS(37, 0, 48, 10)]],
+  b: [54, [stemS(10, 0, 72, 10), bowlC(27, 27, 15, 20, 8, 4)]],
+  d: [54, [bowlC(27, 27, 15, 20, 8, 4), stemS(37, 0, 72, 10)]],
+  e: [54, [[arcC(27, 27, 15, 20, 25, 335, 7, 4)], [rect(12, 22, 42, 27)]]],
+  m: [58, [stemS(6, 0, 48, 10), [arcC(20, 34, 12, 12, 0, 180, 7, 4)], stemS(26, 0, 34, 10, false, true), [arcC(40, 34, 12, 12, 0, 180, 7, 4)], stemS(46, 0, 34, 10, false, true)]],
+  n: [54, [stemS(10, 0, 48, 10), [arcC(26, 34, 16, 12, 0, 180, 7, 4)], stemS(36, 0, 34, 10, false, true)]],
+  o: [54, [bowlC(27, 27, 16, 21, 8, 4)]],
+  r: [54, [stemS(10, 0, 48, 10), [arcC(22, 34, 12, 12, 0, 120, 6, 3)], [rect(32, 22, 38, 34)]]],
+  s: [54, [[arcC(27, 38, 14, 11, 25, 270, 7, 4)], [arcC(27, 16, 14, 11, 200, 450, 7, 4)]]],
+  v: [54, [[diagT(8, 48, 26, 0, 10, 5)], [diagT(44, 48, 26, 0, 6, 5)]]],
+  y: [54, [[diagT(8, 48, 26, 8, 10, 6)], [diagT(44, 48, 26, 8, 6, 6)], [diagT(26, 8, 16, -20, 6, 5)]]],
+  " ": [28, []],
+};
+
 // Even-odd scanline fill over several contours at once (a ring = outer +
 // inner contour; parts are filled one after another, so a bar drawn after
 // a ring covers the counter where it crosses it).
@@ -358,8 +457,9 @@ function fillPart(contours: [number, number][][], c: RGB): void {
   }
 }
 
-function drawGlyph(ch: string, bx: number, by: number, size: number, color: RGB, _weight: number, slant = 0): number {
-  const g = FONT[ch];
+function drawGlyph(ch: string, bx: number, by: number, size: number, color: RGB, _weight: number, slant = 0, face: "serif" | "sans" = "sans"): number {
+  const table = face === "serif" ? SERIF : FONT;
+  const g = table[ch] ?? FONT[ch];
   if (!g) return size * 0.4;
   const s = size / 70;
   for (const part of g[1]) {
@@ -369,42 +469,45 @@ function drawGlyph(ch: string, bx: number, by: number, size: number, color: RGB,
   return g[0] * s;
 }
 
-function textWidth(s: string, size: number, ls = 0): number {
+function textWidth(s: string, size: number, ls = 0, face: "serif" | "sans" = "sans"): number {
+  const table = face === "serif" ? SERIF : FONT;
   let w = 0;
   for (const ch of s) {
-    const g = FONT[ch];
+    const g = table[ch] ?? FONT[ch];
     w += ((g ? g[0] : 30) * size) / 70 + ls;
   }
   return w - ls;
 }
-type TextOpts = { weight?: number; ls?: number; align?: "left" | "center" | "right"; italic?: boolean };
+type TextOpts = { weight?: number; ls?: number; align?: "left" | "center" | "right"; italic?: boolean; face?: "serif" | "sans" };
 function drawText(s: string, x: number, y: number, size: number, color: RGB, opts: TextOpts = {}): void {
   const ls = opts.ls ?? 0;
   const weight = opts.weight ?? 5;
   const slant = opts.italic ? 0.16 : 0;
-  const w = textWidth(s, size, ls);
+  const face = opts.face ?? "sans";
+  const w = textWidth(s, size, ls, face);
   let bx = x;
   if (opts.align === "center") bx = x - w / 2;
   if (opts.align === "right") bx = x - w;
   for (const ch of s) {
-    const adv = drawGlyph(ch, bx, y, size, color, weight, slant);
+    const adv = drawGlyph(ch, bx, y, size, color, weight, slant, face);
     if (weight >= 7) {
-      // Bold: draw the same glyph twice more, shifted a hair left and right.
-      // Even stems get ~25% thicker; counters stay open; advance unchanged.
-      const off = (size / 70) * 0.9;
-      drawGlyph(ch, bx - off, y, size, color, weight, slant);
-      drawGlyph(ch, bx + off, y, size, color, weight, slant);
+      // Bold: draw the same glyph twice more, shifted left and right.
+      // Vertical stems get ~40% thicker; horizontal strokes only get
+      // longer, so the thick/thin contrast survives; counters stay open.
+      const off = (size / 70) * 1.4;
+      drawGlyph(ch, bx - off, y, size, color, weight, slant, face);
+      drawGlyph(ch, bx + off, y, size, color, weight, slant, face);
     }
     bx += adv + ls;
   }
 }
-function wrap(s: string, maxW: number, size: number, ls = 0): string[] {
+function wrap(s: string, maxW: number, size: number, ls = 0, face: "serif" | "sans" = "sans"): string[] {
   const words = s.split(" ");
   const lines: string[] = [];
   let cur = "";
   for (const w of words) {
     const t = cur ? cur + " " + w : w;
-    if (textWidth(t, size, ls) <= maxW || !cur) cur = t;
+    if (textWidth(t, size, ls, face) <= maxW || !cur) cur = t;
     else {
       lines.push(cur);
       cur = w;
@@ -414,22 +517,22 @@ function wrap(s: string, maxW: number, size: number, ls = 0): string[] {
   return lines;
 }
 function drawPara(s: string, x: number, y: number, maxW: number, size: number, lh: number, color: RGB, opts: TextOpts = {}): number {
-  const lines = wrap(s, maxW, size, opts.ls ?? 0);
+  const lines = wrap(s, maxW, size, opts.ls ?? 0, opts.face ?? "sans");
   lines.forEach((ln, i) => drawText(ln, x, y + i * lh, size, color, opts));
   return lines.length;
 }
-function fitSize(s: string, maxW: number, size: number, ls = 0): number {
+function fitSize(s: string, maxW: number, size: number, ls = 0, face: "serif" | "sans" = "sans"): number {
   let sz = size;
-  while (sz > 8 && textWidth(s, sz, ls) > maxW) sz -= 1;
+  while (sz > 8 && textWidth(s, sz, ls, face) > maxW) sz -= 1;
   return sz;
 }
 // Shrink the font (never below minSize) until the text fits in maxLines.
 function drawParaFit(s: string, x: number, y: number, maxW: number, size: number, lh: number, color: RGB, opts: TextOpts, maxLines: number, minSize: number): number {
   let sz = size;
-  let lines = wrap(s, maxW, sz, opts.ls ?? 0);
+  let lines = wrap(s, maxW, sz, opts.ls ?? 0, opts.face ?? "sans");
   while (lines.length > maxLines && sz > minSize) {
     sz -= 0.5;
-    lines = wrap(s, maxW, sz, opts.ls ?? 0);
+    lines = wrap(s, maxW, sz, opts.ls ?? 0, opts.face ?? "sans");
   }
   lines.forEach((ln, i) => drawText(ln, x, y + i * lh, sz, color, opts));
   return lines.length;
@@ -1025,12 +1128,12 @@ function drawPoster(): void {
   fillRect(24, 12, 72, 96, WHITE);
   fillRect(24, 12, 72, 20, RED);
   drawText("NOV", 60, 28, 12, WHITE, { align: "center", weight: 7, ls: 1 });
-  drawText("18", 60, 76, 40, NAVY, { align: "center", weight: 7 });
+  drawText("18", 60, 76, 40, NAVY, { align: "center", weight: 7, face: "serif" });
   drawText("WED · 2026", 60, 98, 8, NAVY, { align: "center", weight: 6 });
   drawText("THE DAY IN WORLD NEWS", 110, 20, 13, GOLD, { weight: 7, ls: 2 });
   drawText("39 STORIES • 7 REGIONS • 15 DRAWN • ONE PAGE", 996, 20, 11, GOLD, { align: "right", weight: 6, ls: 1 });
-  const dateSize = fitSize("Wednesday 18 November 2026", 886, 46);
-  drawText("Wednesday 18 November 2026", 110, 82, dateSize, WHITE, { weight: 7 });
+  const dateSize = fitSize("Wednesday 18 November 2026", 886, 46, 0, "serif");
+  drawText("Wednesday 18 November 2026", 110, 82, dateSize, WHITE, { weight: 7, face: "serif" });
   drawText("Everything on this page happened, or was first reported, on Wednesday 18 November 2026.", 110, 106, 13, hex("#c9d4e6"), { weight: 5, italic: true });
   // region bar: colored segments, one per region, widths by story count (total 39)
   const regions: [string, number, RGB][] = [
@@ -1058,8 +1161,8 @@ function drawPoster(): void {
     badge(x + 16, 176, lead.num);
     drawText(lead.kicker, x, 290, 13, leadCol[i], { weight: 7, ls: 2 });
     drawText(lead.src, x + 312, 290, 10, GREY, { align: "right", weight: 6 });
-    const hl = drawParaFit(lead.head, x, 304, 312, 19, 21, INK, { weight: 7 }, 2, 16);
-    drawParaFit(lead.deck, x, 304 + hl * 21 + 4, 312, 11.5, 13.5, INK, { weight: 5 }, 2, 10);
+    const hl = drawParaFit(lead.head, x, 312, 312, 19, 21, INK, { weight: 7 }, 2, 16);
+    drawParaFit(lead.deck, x, 312 + hl * 21 + 4, 312, 11.5, 13.5, INK, { weight: 5 }, 2, 10);
   });
   fillRect(28, 386, 968, 2, GREY);
   // cards: 3 rows x 4 columns, each with a real illustration panel on top
@@ -1106,10 +1209,49 @@ function drawPoster(): void {
 }
 
 // ---------------- main ----------------
+// ---------------- font test sheet ----------------
+// Renders both faces at the sizes the poster actually uses, so the font can
+// be judged before it goes on the page. Run with "font-test".
+function drawFontTest(): void {
+  fillRect(0, 0, W, H, PAPER);
+  // header preview: navy banner, badge, serif title (as on the poster)
+  fillRect(0, 0, W, 118, NAVY);
+  fillRect(24, 12, 72, 96, WHITE);
+  fillRect(24, 12, 72, 20, RED);
+  drawText("NOV", 60, 28, 12, WHITE, { align: "center", weight: 7, ls: 1 });
+  drawText("18", 60, 76, 40, NAVY, { align: "center", weight: 7, face: "serif" });
+  drawText("WED · 2026", 60, 98, 8, NAVY, { align: "center", weight: 6 });
+  drawText("THE DAY IN WORLD NEWS", 110, 20, 13, GOLD, { weight: 7, ls: 2 });
+  drawText("39 STORIES • 7 REGIONS • 15 DRAWN • ONE PAGE", 996, 20, 11, GOLD, { align: "right", weight: 6, ls: 1 });
+  const dateSize = fitSize("Wednesday 18 November 2026", 886, 46, 0, "serif");
+  drawText("Wednesday 18 November 2026", 110, 88, dateSize, WHITE, { weight: 7, face: "serif" });
+  drawText("SERIF — TITLE GLYPHS 44PX", 28, 150, 12, GREY, { weight: 7, ls: 1 });
+  drawText("Wednesday 18 November 2026", 28, 200, 44, INK, { weight: 7, face: "serif" });
+  drawText("SANS — BOLD 36PX", 28, 250, 12, GREY, { weight: 7, ls: 1 });
+  drawText("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 28, 300, 36, INK, { weight: 7 });
+  drawText("abcdefghijklmnopqrstuvwxyz", 28, 350, 36, INK, { weight: 7 });
+  drawText("SANS — REGULAR 36PX", 28, 400, 12, GREY, { weight: 7, ls: 1 });
+  drawText("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 28, 450, 36, INK, { weight: 5 });
+  drawText("abcdefghijklmnopqrstuvwxyz", 28, 500, 36, INK, { weight: 5 });
+  drawText("HEADLINES — BOLD SANS 19PX", 28, 550, 12, GREY, { weight: 7, ls: 1 });
+  drawText("Iran drones hit U.S. bases in Gulf", 28, 585, 19, INK, { weight: 7 });
+  drawText("Xi and Putin meet as APEC opens", 28, 615, 19, INK, { weight: 7 });
+  drawText("Kerch bridge down; rail back", 28, 645, 19, INK, { weight: 7 });
+  drawText("DECKS — REGULAR SANS 11.5PX", 28, 690, 12, GREY, { weight: 7, ls: 1 });
+  drawText("Iran fires drones at U.S. bases in Kuwait and Bahrain; all intercepted.", 28, 725, 11.5, INK, { weight: 5 });
+  drawText("Xi opens the 33rd APEC meeting of 21 economies and urges free trade.", 28, 745, 11.5, INK, { weight: 5 });
+  drawText("DIGITS — BOLD SANS 56PX", 28, 790, 12, GREY, { weight: 7, ls: 1 });
+  drawText("0123456789", 28, 850, 56, INK, { weight: 7 });
+  drawText("3 vs 5 — 35 53 135 153 305 350", 28, 900, 28, INK, { weight: 6 });
+  drawText("€45bn  $81.3bn  251-11  56-44  144,302", 28, 950, 28, INK, { weight: 6 });
+  drawText("The quick brown fox jumps over the lazy dog. 1234567890", 28, 1000, 24, INK, { weight: 5 });
+}
+
 function main(): void {
   const mode = process.argv[2] || "";
   fillRect(0, 0, W, H, PAPER);
   if (mode === "digit-test") drawDigitTest();
+  else if (mode === "font-test") drawFontTest();
   else drawPoster();
   const outDir = process.env.MAKEFUN_OUTPUT_DIR || "/output";
   fs.mkdirSync(outDir, { recursive: true });
