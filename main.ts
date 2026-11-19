@@ -174,137 +174,202 @@ function pngEncode(): Buffer {
   ]);
 }
 
-// ---------------- vector font (fresh, drawn from scratch) ----------------
+// ---------------- ordinary serif font (filled outlines, exact geometry) ----------------
 // Glyph space: x 0..56, baseline y=0, cap height 70, x-height 48,
-// ascender 72, descender -24. Each glyph: [advance, path strings].
-// Path language: "M x y L x y ..." — M starts a new stroke.
-type Glyph = [number, string[]];
-const FONT: Record<string, Glyph> = {
-  "0": [60, ["M28,2 L16,6 L8,18 L6,36 L8,54 L16,66 L28,70 L40,66 L48,54 L50,36 L48,18 L40,6 L28,2"]],
-  "1": [60, ["M18,56 L30,70 L30,2", "M16,2 L44,2"]],
-  "2": [60, ["M10,52 L16,66 L28,70 L40,66 L46,56 L44,44 L34,34 L12,6", "M8,2 L46,2"]],
-  "3": [60, ["M14,66 L26,70 L38,66 L44,56 L42,44 L34,36 L24,34", "M24,34 L36,32 L44,24 L42,12 L34,4 L22,2 L12,6"]],
-  "4": [60, ["M38,70 L12,24 L44,24", "M38,70 L38,0"]],
-  "5": [60, ["M44,70 L12,70 L12,38 L30,38 L42,32 L46,22 L42,10 L30,4 L18,4 L10,10"]],
-  "6": [60, ["M44,66 L32,70 L18,64 L10,50 L8,30 L14,12 L26,2 L38,4 L46,14 L46,26 L40,36 L28,36 L18,30 L14,20"]],
-  "7": [60, ["M8,70 L48,70 L24,0"]],
-  "8": [60, ["M28,70 L18,66 L12,58 L12,46 L18,38 L28,36 L38,38 L44,46 L44,58 L38,66 L28,70", "M28,36 L16,32 L10,22 L10,10 L18,2 L28,0 L38,2 L46,10 L46,22 L40,32 L28,36"]],
-  "9": [60, ["M12,52 L18,64 L30,68 L42,64 L48,52 L48,40 L42,30 L30,26 L18,30 L12,40 L12,52", "M46,50 L44,0"]],
-  A: [60, ["M6,0 L28,70 L50,0", "M14,26 L42,26"]],
-  B: [60, ["M10,0 L10,70 L32,70 L44,62 L44,50 L36,40 L28,36", "M28,36 L38,34 L46,26 L46,12 L38,2 L10,2"]],
-  C: [60, ["M46,62 L38,68 L24,70 L12,64 L6,52 L6,20 L12,8 L24,2 L38,4 L46,10"]],
-  D: [60, ["M10,0 L10,70 L30,70 L44,62 L50,48 L50,22 L44,8 L30,0 L10,0"]],
-  E: [60, ["M46,70 L10,70 L10,0 L46,0", "M10,36 L36,36"]],
-  F: [60, ["M10,0 L10,70 L46,70", "M10,36 L36,36"]],
-  G: [60, ["M46,62 L38,68 L24,70 L12,64 L6,52 L6,20 L12,8 L24,2 L38,4 L46,10 L46,26 L30,26"]],
-  H: [60, ["M10,0 L10,70", "M46,0 L46,70", "M10,36 L46,36"]],
-  I: [60, ["M14,70 L42,70", "M28,70 L28,0", "M14,0 L42,0"]],
-  J: [60, ["M44,70 L44,10 L38,2 L26,0 L16,4 L12,12"]],
-  K: [60, ["M10,0 L10,70", "M46,70 L14,30", "M20,24 L46,0"]],
-  L: [60, ["M10,70 L10,0 L46,0"]],
-  M: [60, ["M8,0 L8,70 L28,28 L48,70 L48,0"]],
-  N: [60, ["M10,0 L10,70 L46,0 L46,70"]],
-  O: [60, ["M28,70 L16,66 L8,54 L6,36 L8,18 L16,6 L28,2 L40,6 L48,18 L50,36 L48,54 L40,66 L28,70"]],
-  P: [60, ["M10,0 L10,70 L34,70 L46,62 L46,46 L36,36 L10,36"]],
-  Q: [60, ["M28,70 L16,66 L8,54 L6,36 L8,18 L16,6 L28,2 L40,6 L48,18 L50,36 L48,54 L40,66 L28,70", "M36,12 L50,-4"]],
-  R: [60, ["M10,0 L10,70 L34,70 L46,62 L46,46 L36,36 L10,36", "M30,36 L48,0"]],
-  S: [60, ["M44,60 L36,68 L24,70 L12,66 L6,56 L8,44 L16,36 L28,32 L40,28 L48,20 L46,8 L36,2 L24,0 L14,4"]],
-  T: [60, ["M6,70 L50,70", "M28,70 L28,0"]],
-  U: [60, ["M10,70 L10,16 L16,4 L28,0 L40,4 L46,16 L46,70"]],
-  V: [60, ["M8,70 L28,0 L48,70"]],
-  W: [60, ["M6,70 L14,0 L28,44 L42,0 L50,70"]],
-  X: [60, ["M10,70 L46,0", "M46,70 L10,0"]],
-  Y: [60, ["M8,70 L28,36 L48,70", "M28,36 L28,0"]],
-  Z: [60, ["M8,70 L48,70 L8,0 L48,0"]],
-  a: [54, ["M14,44 L24,48 L36,46 L44,38 L46,26 L40,14 L28,8 L18,10 L12,18 L12,30 L18,40 L28,44", "M46,48 L46,8"]],
-  b: [54, ["M12,72 L12,0", "M12,44 L24,48 L36,44 L44,36 L44,22 L36,12 L24,8 L12,12"]],
-  c: [54, ["M44,40 L38,46 L26,48 L14,42 L10,30 L10,18 L16,10 L28,6 L40,8 L44,14"]],
-  d: [54, ["M12,44 L22,48 L34,44 L42,36 L44,24 L38,12 L26,8 L16,10 L12,18 L12,30 L18,40 L28,44", "M44,72 L44,0"]],
-  e: [54, ["M10,24 L44,24 L44,34 L38,44 L26,48 L16,44 L10,34 L10,22 L16,12 L28,8 L38,10 L44,18"]],
-  f: [48, ["M22,72 L34,72 L38,62 L38,0", "M10,48 L44,48"]],
-  g: [54, ["M12,44 L22,48 L34,44 L42,36 L44,24 L38,12 L26,8 L16,10 L12,18 L12,30 L18,40 L28,44", "M44,48 L44,0 L42,-14 L32,-22 L20,-20 L14,-12"]],
-  h: [54, ["M12,72 L12,0", "M12,34 L22,46 L32,48 L40,42 L44,32 L44,0"]],
-  i: [28, ["M14,48 L14,2", "M14,70 L14,64"]],
-  j: [30, ["M20,48 L20,-12 L16,-20 L10,-22", "M20,70 L20,64"]],
-  k: [54, ["M12,72 L12,0", "M42,48 L16,22 L14,20", "M20,26 L42,0"]],
-  l: [28, ["M14,72 L14,0"]],
-  m: [58, ["M8,0 L8,48", "M8,34 L16,46 L24,48 L30,42 L32,32 L32,0", "M32,34 L40,46 L48,48 L52,42 L54,32 L54,0"]],
-  n: [54, ["M10,0 L10,48", "M10,34 L20,46 L32,48 L40,42 L44,32 L44,0"]],
-  o: [54, ["M28,48 L18,44 L12,34 L10,22 L14,12 L24,6 L34,6 L44,12 L48,22 L46,34 L40,44 L28,48"]],
-  p: [54, ["M12,48 L12,-22", "M12,12 L22,8 L34,10 L42,18 L44,28 L38,40 L26,46 L16,44 L12,36"]],
-  q: [54, ["M44,48 L44,-22", "M44,12 L34,8 L22,10 L14,18 L12,28 L18,40 L30,46 L40,44 L44,36"]],
-  r: [44, ["M12,0 L12,48", "M12,30 L20,44 L30,48 L38,46"]],
-  s: [54, ["M42,40 L34,46 L24,48 L14,44 L10,36 L14,28 L24,24 L34,22 L42,16 L40,8 L32,4 L22,4 L14,8"]],
-  t: [36, ["M18,72 L18,2", "M6,46 L32,46"]],
-  u: [54, ["M10,48 L10,14 L16,6 L26,4 L36,6 L42,14 L42,48"]],
-  v: [54, ["M8,48 L24,0 L40,48"]],
-  w: [50, ["M6,48 L14,2 L24,34 L34,2 L42,48"]],
-  x: [54, ["M10,48 L42,0", "M42,48 L10,0"]],
-  y: [54, ["M8,48 L24,6 L40,48", "M24,6 L18,-18 L14,-22"]],
-  z: [54, ["M8,48 L46,48 L10,0 L48,0"]],
+// ascender 72, descender -24. A plain Times-like face: straight vertical
+// stems with small flat serifs, symmetric ellipse bowls, thin horizontals.
+// Every glyph is a list of parts; each part is one even-odd fill, and parts
+// are drawn in order, so overlapping solid shapes (stem over bowl, bar over
+// counter) compose correctly. All advances are unchanged from the previous
+// font, so every line still fits exactly as before.
+type Ctr = [number, number][];
+type Part = Ctr[];
+type OGlyph = [number, Part[]];
+const rect = (x0: number, y0: number, x1: number, y1: number): Ctr => [
+  [x0, y0],
+  [x1, y0],
+  [x1, y1],
+  [x0, y1],
+];
+const ell = (cx: number, cy: number, rx: number, ry: number, n = 24): Ctr => {
+  const p: Ctr = [];
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2;
+    p.push([cx + rx * Math.cos(a), cy + ry * Math.sin(a)]);
+  }
+  return p;
+};
+// Thick arc band, angles in degrees (0 = east, 90 = north), a1 > a0.
+const arcBand = (cx: number, cy: number, rx: number, ry: number, a0: number, a1: number, th: number, n = 16): Ctr => {
+  const p: Ctr = [];
+  for (let i = 0; i <= n; i++) {
+    const a = ((a0 + ((a1 - a0) * i) / n) * Math.PI) / 180;
+    p.push([cx + rx * Math.cos(a), cy + ry * Math.sin(a)]);
+  }
+  for (let i = n; i >= 0; i--) {
+    const a = ((a0 + ((a1 - a0) * i) / n) * Math.PI) / 180;
+    p.push([cx + (rx - th) * Math.cos(a), cy + (ry - th) * Math.sin(a)]);
+  }
+  return p;
+};
+const bowl = (cx: number, cy: number, rx: number, ry: number, th: number): Part => [
+  ell(cx, cy, rx, ry),
+  ell(cx, cy, rx - th, ry - th),
+];
+const diag = (x0: number, y0: number, x1: number, y1: number, w: number): Ctr => {
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  const len = Math.hypot(dx, dy);
+  const nx = (-dy / len) * (w / 2);
+  const ny = (dx / len) * (w / 2);
+  return [
+    [x0 + nx, y0 + ny],
+    [x1 + nx, y1 + ny],
+    [x1 - nx, y1 - ny],
+    [x0 - nx, y0 - ny],
+  ];
+};
+// Vertical stem with small flat serifs; top/bot toggle the serif bars.
+const stem = (x: number, y0: number, y1: number, w: number, top = true, bot = true): Part[] => {
+  const ps: Part[] = [[rect(x, y0, x + w, y1)]];
+  if (top) ps.push([rect(x - 3, y1 - 3, x + w + 3, y1)]);
+  if (bot) ps.push([rect(x - 3, y0, x + w + 3, y0 + 3)]);
+  return ps;
+};
+const FONT: Record<string, OGlyph> = {
+  "0": [60, [bowl(28, 35, 20, 32, 7)]],
+  "1": [60, [...stem(26, 0, 70, 11), [diag(18, 56, 30, 70, 7)], [rect(16, -1, 44, 5)]]],
+  "2": [60, [[arcBand(28, 54, 16, 13, -10, 190, 7)], [diag(44, 52, 12, 6, 7)], [rect(8, 0, 48, 7)]]],
+  "3": [60, [[arcBand(29, 54, 14, 13, 15, 270, 7)], [arcBand(29, 19, 15, 14, 200, 450, 7)], [rect(20, 32, 40, 40)]]],
+  "4": [60, [[diag(40, 70, 12, 24, 7)], [rect(8, 19, 44, 26)], ...stem(32, 0, 70, 9, false, true)]],
+  "5": [60, [[rect(10, 63, 44, 70)], ...stem(10, 36, 68, 9, false, false), [rect(10, 32, 32, 39)], [arcBand(28, 20, 15, 16, 250, 450, 7)]]],
+  "6": [60, [[arcBand(28, 40, 15, 18, 90, 270, 7)], bowl(28, 22, 15, 18, 7)]],
+  "7": [60, [[rect(8, 63, 48, 70)], [diag(46, 70, 24, 0, 7)]]],
+  "8": [60, [bowl(28, 52, 14, 14, 7), bowl(28, 20, 15, 16, 7)]],
+  "9": [60, [bowl(28, 48, 15, 18, 7), ...stem(38, 0, 50, 9, false, false)]],
+  A: [60, [[diag(6, 0, 28, 70, 9)], [diag(28, 70, 50, 0, 9)], [rect(14, 23, 42, 30)]]],
+  B: [60, [...stem(8, 0, 70, 11), bowl(29, 53, 14, 14, 7), bowl(29, 19, 15, 15, 7)]],
+  C: [60, [[arcBand(28, 35, 20, 33, 45, 315, 7)]]],
+  D: [60, [...stem(8, 0, 70, 11), [ell(30, 35, 20, 33), ell(30, 35, 14, 27)]]],
+  E: [60, [...stem(8, 0, 70, 11), [rect(8, 63, 48, 70)], [rect(8, 31, 38, 38)], [rect(8, 0, 48, 7)]]],
+  F: [60, [...stem(8, 0, 70, 11), [rect(8, 63, 48, 70)], [rect(8, 31, 38, 38)]]],
+  G: [60, [[arcBand(28, 35, 20, 33, 45, 315, 7)], [rect(28, 27, 48, 34)], ...stem(43, 4, 30, 7, false, false)]],
+  H: [60, [...stem(8, 0, 70, 11), ...stem(39, 0, 70, 11), [rect(8, 31, 49, 38)]]],
+  I: [60, [...stem(24, 0, 70, 11), [rect(14, 63, 42, 70)], [rect(14, 0, 42, 7)]]],
+  J: [60, [...stem(34, 0, 70, 11, true, false), [arcBand(30, 12, 16, 12, 180, 270, 7)]]],
+  K: [60, [...stem(8, 0, 70, 11), [diag(16, 34, 44, 70, 8)], [diag(22, 26, 44, 0, 8)]]],
+  L: [60, [...stem(8, 0, 70, 11), [rect(8, 0, 48, 7)]]],
+  M: [60, [...stem(6, 0, 70, 11), [diag(6, 70, 28, 28, 8)], [diag(28, 28, 50, 70, 8)], ...stem(47, 0, 70, 11)]],
+  N: [60, [...stem(8, 0, 70, 11), [diag(8, 70, 48, 0, 8)], ...stem(39, 0, 70, 11)]],
+  O: [60, [bowl(28, 35, 21, 33, 7)]],
+  P: [60, [...stem(8, 0, 70, 11), bowl(29, 53, 14, 14, 7)]],
+  Q: [60, [bowl(28, 35, 21, 33, 7), [diag(38, 14, 52, -4, 6)]]],
+  R: [60, [...stem(8, 0, 70, 11), bowl(29, 53, 14, 14, 7), [diag(28, 36, 48, 0, 7)]]],
+  S: [60, [[arcBand(28, 52, 16, 15, 25, 270, 7)], [arcBand(28, 20, 16, 15, 200, 450, 7)]]],
+  T: [60, [[rect(6, 63, 50, 70)], ...stem(24, 0, 70, 11)]],
+  U: [60, [...stem(8, 0, 70, 11), ...stem(39, 0, 70, 11), [arcBand(28, 12, 15, 12, 180, 360, 7)]]],
+  V: [60, [[diag(8, 70, 28, 0, 9)], [diag(28, 0, 48, 70, 9)]]],
+  W: [60, [[diag(4, 70, 14, 0, 7)], [diag(14, 0, 28, 70, 7)], [diag(28, 70, 42, 0, 7)], [diag(42, 0, 52, 70, 7)]]],
+  X: [60, [[diag(10, 70, 46, 0, 8)], [diag(46, 70, 10, 0, 8)]]],
+  Y: [60, [[diag(8, 70, 28, 36, 9)], [diag(48, 70, 28, 36, 9)], ...stem(24, 0, 38, 11)]],
+  Z: [60, [[rect(8, 63, 48, 70)], [diag(48, 70, 8, 0, 6)], [rect(8, 0, 48, 7)]]],
+  a: [54, [bowl(26, 27, 15, 20, 7), ...stem(37, 8, 48, 10)]],
+  b: [54, [...stem(10, 0, 72, 10), bowl(27, 27, 15, 20, 7)]],
+  c: [54, [[arcBand(27, 27, 16, 21, 50, 310, 7)]]],
+  d: [54, [bowl(27, 27, 15, 20, 7), ...stem(37, 0, 72, 10)]],
+  e: [54, [[arcBand(27, 27, 15, 20, 25, 335, 7)], [rect(12, 21, 42, 28)]]],
+  f: [48, [...stem(20, 0, 66, 10, false, true), [arcBand(24, 58, 9, 9, 0, 180, 7)], [rect(8, 43, 38, 50)]]],
+  g: [54, [bowl(26, 34, 14, 14, 7), bowl(26, -10, 13, 9, 7), ...stem(34, -19, 48, 10, true, false)]],
+  h: [54, [...stem(10, 0, 72, 10), [arcBand(23, 34, 13, 12, 0, 180, 7)], ...stem(36, 0, 34, 10, false, true)]],
+  i: [28, [...stem(10, 0, 48, 10, false, true), [rect(10, 60, 18, 68)]]],
+  j: [30, [...stem(11, -20, 48, 10, false, false), [arcBand(15, -10, 9, 9, 180, 270, 6)], [rect(11, 60, 19, 68)]]],
+  k: [54, [...stem(10, 0, 72, 10), [diag(18, 26, 42, 48, 7)], [diag(22, 20, 42, 0, 7)]]],
+  l: [28, [...stem(10, 0, 72, 10)]],
+  m: [58, [...stem(6, 0, 48, 10), [arcBand(20, 34, 12, 12, 0, 180, 7)], ...stem(26, 0, 34, 10, false, true), [arcBand(40, 34, 12, 12, 0, 180, 7)], ...stem(46, 0, 34, 10, false, true)]],
+  n: [54, [...stem(10, 0, 48, 10), [arcBand(26, 34, 16, 12, 0, 180, 7)], ...stem(36, 0, 34, 10, false, true)]],
+  o: [54, [bowl(27, 27, 16, 21, 7)]],
+  p: [54, [...stem(10, -24, 48, 10, false, false), bowl(27, 27, 15, 20, 7)]],
+  q: [54, [bowl(27, 27, 15, 20, 7), ...stem(37, -24, 48, 10, false, false)]],
+  r: [54, [...stem(10, 0, 48, 10), [arcBand(22, 34, 12, 12, 0, 120, 7)]]],
+  s: [54, [[arcBand(27, 38, 14, 11, 25, 270, 7)], [arcBand(27, 16, 14, 11, 200, 450, 7)]]],
+  t: [36, [...stem(14, -2, 68, 10, false, true), [rect(4, 43, 32, 50)]]],
+  u: [54, [...stem(10, 0, 48, 10), ...stem(36, 0, 48, 10), [arcBand(27, 12, 13, 12, 180, 360, 7)]]],
+  v: [54, [[diag(8, 48, 26, 0, 8)], [diag(26, 0, 44, 48, 8)]]],
+  w: [50, [[diag(6, 48, 17, 0, 7)], [diag(17, 0, 28, 48, 7)], [diag(28, 48, 39, 0, 7)], [diag(39, 0, 48, 48, 7)]]],
+  x: [54, [[diag(10, 48, 42, 0, 7)], [diag(42, 48, 10, 0, 7)]]],
+  y: [54, [[diag(8, 48, 26, 6, 8)], [diag(26, 6, 44, 48, 8)], [diag(26, 6, 16, -20, 7)]]],
+  z: [54, [[rect(8, 42, 46, 49)], [diag(46, 48, 8, 0, 6)], [rect(8, 0, 46, 7)]]],
   " ": [28, []],
-  ".": [28, ["M12,2 L16,2"]],
-  ",": [28, ["M12,2 L16,2", "M15,0 L10,-12"]],
-  ":": [28, ["M12,30 L16,30", "M12,8 L16,8"]],
-  ";": [28, ["M12,30 L16,30", "M13,8 L17,8", "M15,6 L10,-10"]],
-  "'": [22, ["M14,68 L10,54"]],
-  '"': [40, ["M10,68 L6,54", "M28,68 L24,54"]],
-  "!": [28, ["M14,68 L14,18", "M14,2 L16,2"]],
-  "?": [60, ["M14,56 L20,66 L30,68 L38,62 L38,52 L30,44 L26,38 L26,28", "M26,2 L28,2"]],
-  "-": [34, ["M8,28 L26,28"]],
-  "—": [56, ["M4,28 L52,28"]],
-  "(": [30, ["M22,70 L14,56 L10,36 L14,16 L22,2"]],
-  ")": [30, ["M8,70 L16,56 L20,36 L16,16 L8,2"]],
-  "%": [64, ["M14,68 L42,2", "M12,58 L18,64 L24,58 L24,52 L18,46 L12,52 L12,58", "M34,20 L40,26 L46,20 L46,14 L40,8 L34,14 L34,20"]],
-  "/": [34, ["M8,0 L26,70"]],
-  $: [60, ["M28,76 L28,-6", "M40,56 L32,64 L22,64 L14,56 L12,44 L20,34 L36,30 L44,22 L42,10 L32,4 L22,4 L14,10"]],
-  "+": [60, ["M28,14 L28,56", "M10,35 L46,35"]],
-  "=": [60, ["M10,26 L46,26", "M10,12 L46,12"]],
-  "•": [28, ["M10,26 L18,26", "M10,34 L18,34"]],
+  ".": [28, [[rect(23, 0, 29, 6)]]],
+  ",": [28, [[rect(23, 0, 29, 6)], [diag(28, 2, 20, -12, 5)]]],
+  ":": [28, [[rect(23, 26, 29, 32)], [rect(23, 4, 29, 10)]]],
+  ";": [28, [[rect(23, 26, 29, 32)], [rect(23, 4, 29, 10)], [diag(28, 6, 20, -10, 5)]]],
+  "'": [22, [[diag(15, 68, 10, 54, 6)]]],
+  '"': [40, [[diag(13, 68, 8, 54, 6)], [diag(31, 68, 26, 54, 6)]]],
+  "!": [28, [[rect(23, 18, 29, 68)], [rect(23, 0, 29, 6)]]],
+  "?": [60, [[arcBand(28, 54, 14, 12, 200, 380, 7)], [diag(40, 48, 27, 30, 6)], [rect(24, 2, 30, 8)]]],
+  "-": [34, [[rect(10, 24, 26, 30)]]],
+  "—": [56, [[rect(4, 24, 52, 30)]]],
+  "(": [30, [[arcBand(34, 35, 10, 33, 60, 300, 6)]]],
+  ")": [30, [[arcBand(22, 35, 10, 33, 240, 480, 6)]]],
+  "%": [64, [[diag(14, 68, 42, 2, 6)], bowl(17, 56, 7, 7, 4), bowl(39, 14, 7, 7, 4)]],
+  "/": [34, [[diag(10, 0, 26, 70, 6)]]],
+  $: [60, [[arcBand(28, 52, 16, 15, 25, 270, 7)], [arcBand(28, 20, 16, 15, 200, 450, 7)], ...stem(25, -6, 76, 6, false, false)]],
+  "+": [60, [[rect(24, 14, 30, 56)], [rect(10, 32, 46, 38)]]],
+  "=": [60, [[rect(10, 37, 46, 43)], [rect(10, 17, 46, 23)]]],
+  "•": [28, [[ell(26, 30, 5, 5)]]],
 };
 
-function parsePath(p: string): [number, number][] {
-  const pts: [number, number][] = [];
-  for (const t of p.trim().split(/\s+/)) {
-    const clean = t.replace(/^[ML]/, "");
-    if (!clean) continue;
-    const [x, y] = clean.split(",").map(Number);
-    pts.push([x, y]);
+// Even-odd scanline fill over several contours at once (a ring = outer +
+// inner contour; parts are filled one after another, so a bar drawn after
+// a ring covers the counter where it crosses it).
+function fillPart(contours: [number, number][][], c: RGB): void {
+  let minY = H;
+  let maxY = 0;
+  for (const pts of contours) {
+    for (const [, y] of pts) {
+      minY = Math.min(minY, Math.floor(y));
+      maxY = Math.max(maxY, Math.ceil(y));
+    }
   }
-  return pts;
-}
-type ParsedGlyph = { adv: number; strokes: [number, number][][] };
-const PARSED: Record<string, ParsedGlyph> = {};
-for (const ch of Object.keys(FONT)) {
-  PARSED[ch] = { adv: FONT[ch][0], strokes: FONT[ch][1].map(parsePath) };
-}
-
-function drawGlyph(ch: string, bx: number, by: number, size: number, color: RGB, weight: number): number {
-  const g = PARSED[ch];
-  if (!g) return size * 0.4;
-  const s = size / 70;
-  const w = Math.max(1.8, weight * s);
-  for (const stroke of g.strokes) {
-    for (let i = 0; i + 1 < stroke.length; i++) {
-      const [x1, y1] = stroke[i];
-      const [x2, y2] = stroke[i + 1];
-      line(bx + x1 * s, by - y1 * s, bx + x2 * s, by - y2 * s, w, color);
-      // serif ticks on long vertical segments
-      if (Math.abs(x1 - x2) <= 1.5 && Math.abs(y1 - y2) >= 35) {
-        for (const e of [stroke[i], stroke[i + 1]]) {
-          line(bx + (e[0] - 8) * s, by - e[1] * s, bx + (e[0] + 8) * s, by - e[1] * s, w * 0.85, color);
+  minY = Math.max(0, minY);
+  maxY = Math.min(H - 1, maxY);
+  for (let y = minY; y <= maxY; y++) {
+    const xs: number[] = [];
+    for (const pts of contours) {
+      for (let i = 0; i < pts.length; i++) {
+        const [x1, y1] = pts[i];
+        const [x2, y2] = pts[(i + 1) % pts.length];
+        if ((y1 <= y && y2 > y) || (y2 <= y && y1 > y)) {
+          xs.push(x1 + ((y - y1) * (x2 - x1)) / (y2 - y1));
         }
       }
     }
+    xs.sort((a, b) => a - b);
+    for (let i = 0; i + 1 < xs.length; i += 2) {
+      const x0 = Math.max(0, Math.ceil(xs[i]));
+      const x1 = Math.min(W - 1, Math.floor(xs[i + 1]));
+      for (let x = x0; x <= x1; x++) px(x, y, c);
+    }
   }
-  return g.adv * s;
+}
+
+function drawGlyph(ch: string, bx: number, by: number, size: number, color: RGB, _weight: number): number {
+  const g = FONT[ch];
+  if (!g) return size * 0.4;
+  const s = size / 70;
+  for (const part of g[1]) {
+    const scr: [number, number][][] = part.map((ctr) => ctr.map(([x, y]): [number, number] => [bx + x * s, by - y * s]));
+    fillPart(scr, color);
+  }
+  return g[0] * s;
 }
 
 function textWidth(s: string, size: number, ls = 0): number {
   let w = 0;
   for (const ch of s) {
-    const g = PARSED[ch];
-    w += ((g ? g.adv : 30) * size) / 70 + ls;
+    const g = FONT[ch];
+    w += ((g ? g[0] : 30) * size) / 70 + ls;
   }
   return w - ls;
 }
@@ -405,7 +470,7 @@ const LEADS: Lead[] = [
 type GridItem = { num: number; cat: string; color: RGB; head: string; deck: string };
 const GRID: GridItem[] = [
   { num: 4, cat: "QUAD", color: BLUE, head: "Leaders meet in Manila", deck: "Trump, Modi, Takaichi, Albanese back joint patrols and minerals deals." },
-  { num: 5, cat: "U.S. SENATE", color: BLUE, head: "Peltola flips Alaska", deck: "Peltola beats Sullivan 144,302 to 131,844; Democrats take a 56-44 Senate." },
+  { num: 5, cat: "U.S. SENATE", color: BLUE, head: "Peltola flips Alaska", deck: "Peltola beats Sullivan 144,302 to 131,844; Democrats take 56-44." },
   { num: 6, cat: "GAZA", color: RED, head: "Ceasefire near collapse", deck: "Board of Peace: both sides failing the deal; 1,600+ killed since 2025." },
   { num: 7, cat: "EBOLA", color: PURPLE, head: "Congo toll: 11,504 cases", deck: "5,630 deaths to 16 Nov; Africa CDC: 'still out of control'." },
   { num: 8, cat: "HEALTH", color: TEAL, head: "U.S. loses measles-free status", deck: "PAHO ends 26 years of elimination; 5,412 cases, the most since 1991." },
